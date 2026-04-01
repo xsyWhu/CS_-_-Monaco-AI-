@@ -9,11 +9,13 @@ interface Props {
 }
 
 function highlightMatch(text: string, column: number, length: number) {
-  if (!length || column < 0) return <span>{text}</span>
+  if (!length || column <= 0) return <span>{text}</span>
 
-  const before = text.slice(0, column)
-  const match = text.slice(column, column + length)
-  const after = text.slice(column + length)
+  const startIndex = column - 1
+
+  const before = text.slice(0, startIndex)
+  const match = text.slice(startIndex, startIndex + length)
+  const after = text.slice(startIndex + length)
 
   return (
     <>
@@ -45,11 +47,12 @@ function highlightText(text: string, query: string) {
 
 export default function SearchResultItem({ result, type, query }: Props) {
   const openFile = useEditorStore((s) => s.openFile)
+  const openFileAtPosition = useEditorStore((s) => s.openFileAtPosition)
 
   const handleClick = () => {
     if (type === 'content') {
       const r = result as SearchResult
-      openFile(r.filePath)
+      openFileAtPosition(r.filePath, r.line, r.column)
     } else {
       const r = result as FileNameResult
       openFile(r.filePath)

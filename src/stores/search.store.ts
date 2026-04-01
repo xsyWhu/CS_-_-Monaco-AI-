@@ -49,10 +49,13 @@ export const useSearchStore = create<SearchState>((set, get) => ({
 
   search: async (rootPath: string) => {
     const { query, searchType, options } = get()
-    if (!query.trim()) return
+    if (!query.trim()) {
+      set({ results: [], fileResults: [], loading: false })
+      return
+    }
 
     try {
-      set({ loading: true })
+      set({ loading: true, results: [], fileResults: [] })
 
       if (searchType === 'content') {
         const results = await window.api.searchFiles(rootPath, query, {
@@ -60,14 +63,14 @@ export const useSearchStore = create<SearchState>((set, get) => ({
           regex: options.regex,
           filePattern: options.filePattern || undefined,
         })
-        set({ results, loading: false })
+        set({ results, fileResults: [], loading: false })
       } else {
         const fileResults = await window.api.searchFileNames(rootPath, query)
-        set({ fileResults, loading: false })
+        set({ fileResults, results: [], loading: false })
       }
     } catch (error) {
       console.error('Search failed:', error)
-      set({ loading: false })
+      set({ loading: false, results: [], fileResults: [] })
     }
   },
 

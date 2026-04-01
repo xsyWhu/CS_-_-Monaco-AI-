@@ -5,17 +5,27 @@ import { generateId, getLanguageFromFileName } from '../lib/utils'
 interface EditorState {
   tabs: FileTab[]
   activeTabId: string | null
+  pendingReveal:
+    | {
+        filePath: string
+        line: number
+        column: number
+      }
+    | null
 
   openFile: (filePath: string) => Promise<void>
+  openFileAtPosition: (filePath: string, line: number, column: number) => Promise<void>
   closeTab: (tabId: string) => void
   setActiveTab: (tabId: string) => void
   updateTabContent: (tabId: string, content: string) => void
   saveTab: (tabId: string) => Promise<void>
+  clearPendingReveal: () => void
 }
 
 export const useEditorStore = create<EditorState>((set, get) => ({
   tabs: [],
   activeTabId: null,
+  pendingReveal: null,
 
   openFile: async (filePath) => {
     const { tabs } = get()
@@ -37,6 +47,17 @@ export const useEditorStore = create<EditorState>((set, get) => ({
     set({
       tabs: [...tabs.map((t) => ({ ...t, isActive: false })), newTab],
       activeTabId: id,
+    })
+  },
+
+  openFileAtPosition: async (filePath, line, column) => {
+    await get().openFile(filePath)
+    set({
+      pendingReveal: {
+        filePath,
+        line,
+        column,
+      },
     })
   },
 
@@ -74,4 +95,6 @@ export const useEditorStore = create<EditorState>((set, get) => ({
       tabs: state.tabs.map((t) => (t.id === tabId ? { ...t, isDirty: false } : t)),
     }))
   },
+
+  clearPendingReveal: () => set({ pendingReveal: null }),
 }))
