@@ -1,4 +1,4 @@
-import { useCallback } from 'react'
+import { useCallback, useState } from 'react' // 1. 引入 useState
 import { FilePlus, FolderPlus, RefreshCw, ChevronsDownUp } from 'lucide-react'
 import { useFileTreeStore } from '../../stores/file-tree.store'
 import FileTreeItem from './FileTreeItem'
@@ -12,19 +12,38 @@ export default function FileExplorer() {
   const createFile = useFileTreeStore((s) => s.createFile)
   const createFolder = useFileTreeStore((s) => s.createFolder)
 
+  // 2. 增加控制输入状态，不影响原有 UI 结构
+  const [isCreating, setIsCreating] = useState<'file' | 'folder' | null>(null)
+  const [tempName, setTempName] = useState('')
+
   const rootName = rootPath?.split(/[/\\]/).pop() ?? null
 
+  // 3. 提取创建逻辑
+  const handleConfirmCreate = useCallback(async () => {
+    const name = tempName.trim()
+    if (name && rootPath) {
+      if (isCreating === 'file') {
+        await createFile(rootPath, name)
+      } else {
+        await createFolder(rootPath, name)
+      }
+    }
+    setIsCreating(null)
+    setTempName('')
+  }, [isCreating, tempName, rootPath, createFile, createFolder])
+
+  // 4. 修改处理函数：不再调用 prompt，而是开启输入状态
   const handleNewFile = useCallback(() => {
     if (!rootPath) return
-    const name = prompt('Enter file name:')
-    if (name) createFile(rootPath, name)
-  }, [rootPath, createFile])
+    setIsCreating('file')
+    setTempName('')
+  }, [rootPath])
 
   const handleNewFolder = useCallback(() => {
     if (!rootPath) return
-    const name = prompt('Enter folder name:')
-    if (name) createFolder(rootPath, name)
-  }, [rootPath, createFolder])
+    setIsCreating('folder')
+    setTempName('')
+  }, [rootPath])
 
   return (
     <div className="h-full flex flex-col bg-[var(--bg-secondary)]">
@@ -84,6 +103,29 @@ export default function FileExplorer() {
                 {rootName}
               </div>
             )}
+
+            {/* 5. 核心修复：在列表顶部插入一个高度一致的输入框 */}
+            {isCreating && (
+              <div className="px-4 py-1 flex items-center bg-[var(--bg-tertiary)] border-l-2 border-[var(--accent)]">
+                <input
+                  autoFocus
+                  className="w-full bg-transparent border-none outline-none text-[13px] text-[var(--text-primary)]"
+                  placeholder={isCreating === 'file' ? "file name..." : "folder name..."}
+                  value={tempName}
+                  onChange={(e) => setTempName(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') handleConfirmCreate()
+                    if (e.key === 'Escape') setIsCreating(null)
+                  }}
+                  onBlur={() => {
+                    // 失去焦点时，如果有内容则尝试创建，没内容则取消
+                    if (tempName.trim()) handleConfirmCreate()
+                    else setIsCreating(null)
+                  }}
+                />
+              </div>
+            )}
+
             {entries.map((entry) => (
               <FileTreeItem key={entry.path} entry={entry} depth={0} />
             ))}
