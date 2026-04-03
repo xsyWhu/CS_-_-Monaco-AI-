@@ -6,6 +6,8 @@ import { Code2 } from 'lucide-react'
 export default function EditorArea() {
   const tabs = useEditorStore((s) => s.tabs)
   const activeTabId = useEditorStore((s) => s.activeTabId)
+  const pendingReveal = useEditorStore((s) => s.pendingReveal)
+  const clearPendingReveal = useEditorStore((s) => s.clearPendingReveal)
   const updateTabContent = useEditorStore((s) => s.updateTabContent)
 
   const activeTab = tabs.find((t) => t.id === activeTabId)
@@ -42,6 +44,12 @@ export default function EditorArea() {
             filePath={activeTab.filePath}
             content={activeTab.content}
             language={activeTab.language}
+            revealPosition={
+              pendingReveal?.filePath === activeTab.filePath
+                ? { line: pendingReveal.line, column: pendingReveal.column }
+                : null
+            }
+            onRevealHandled={clearPendingReveal}
             onChange={(value) => {
               if (value !== undefined) {
                 updateTabContent(activeTab.id, value)

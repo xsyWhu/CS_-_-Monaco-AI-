@@ -48,7 +48,9 @@ export default class SearchService {
     await this.walkDirectory(rootPath, async (filePath) => {
       if (results.length >= maxResults) return
 
-      if (filePattern && !this.matchesPattern(path.basename(filePath), filePattern)) {
+      const relativePath = this.normalizePath(path.relative(rootPath, filePath))
+
+      if (filePattern && !this.matchesPattern(relativePath, filePattern)) {
         return
       }
 
@@ -100,8 +102,13 @@ export default class SearchService {
       if (results.length >= maxResults) return
 
       const fileName = path.basename(filePath)
+      const relativePath = this.normalizePath(path.relative(rootPath, filePath))
 
-      if (this.matchesPattern(fileName, pattern) || fileName.toLowerCase().includes(lowerPattern)) {
+      if (
+        this.matchesPattern(relativePath, pattern) ||
+        fileName.toLowerCase().includes(lowerPattern) ||
+        relativePath.toLowerCase().includes(lowerPattern)
+      ) {
         results.push({ filePath, fileName })
       }
     })
@@ -136,18 +143,27 @@ export default class SearchService {
     return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
   }
 
-  private matchesPattern(fileName: string, pattern: string): boolean {
-    if (!pattern.includes('*') && !pattern.includes('?')) {
-      return fileName.toLowerCase().includes(pattern.toLowerCase())
+  private matchesPattern(relativePath: string, pattern: string): boolean {
+    const normalizedPath = this.normalizePath(relativePath)
+    const normalizedPattern = this.normalizePath(pattern.trim())
+
+    if (!normalizedPattern) return true
+
+    if (!normalizedPattern.includes('*') && !normalizedPattern.includes('?')) {
+      return normalizedPath.toLowerCase().includes(normalizedPattern.toLowerCase())
     }
 
-    const regexStr = pattern
+    const regexStr = normalizedPattern
       .split('*').map((s) => s.split('?').map(this.escapeRegex).join('.')).join('.*')
 
     try {
-      return new RegExp(`^${regexStr}$`, 'i').test(fileName)
+      return new RegExp(`^${regexStr}$`, 'i').test(normalizedPath)
     } catch {
       return false
     }
+  }
+
+  private normalizePath(input: string): string {
+    return input.replace(/\\/g, '/')
   }
 }
