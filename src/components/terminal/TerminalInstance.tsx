@@ -12,6 +12,19 @@ export default function TerminalInstance({ terminalId }: TerminalInstanceProps) 
   const terminalRef = useRef<Terminal | null>(null)
   const fitAddonRef = useRef<FitAddon | null>(null)
 
+  const syncTerminalSize = () => {
+    const terminal = terminalRef.current
+    const fitAddon = fitAddonRef.current
+    if (!terminal || !fitAddon) return
+
+    try {
+      fitAddon.fit()
+      window.api.resizeTerminal(terminalId, terminal.cols, terminal.rows)
+    } catch {
+      // Ignore transient resize failures during layout changes
+    }
+  }
+
   useEffect(() => {
     if (!containerRef.current) return
 
@@ -31,7 +44,7 @@ export default function TerminalInstance({ terminalId }: TerminalInstanceProps) 
     terminal.open(containerRef.current)
 
     requestAnimationFrame(() => {
-      try { fitAddon.fit() } catch { /* container not yet sized */ }
+      syncTerminalSize()
     })
 
     terminalRef.current = terminal
@@ -49,7 +62,7 @@ export default function TerminalInstance({ terminalId }: TerminalInstanceProps) 
 
     const resizeObserver = new ResizeObserver(() => {
       requestAnimationFrame(() => {
-        try { fitAddon.fit() } catch { /* ignore fit errors during transitions */ }
+        syncTerminalSize()
       })
     })
     resizeObserver.observe(containerRef.current)

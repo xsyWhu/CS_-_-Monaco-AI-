@@ -30,7 +30,7 @@ export const useGitStore = create<GitState>((set) => ({
       set({ status, loading: false })
     } catch (error) {
       console.error('Failed to refresh git status:', error)
-      set({ loading: false })
+      set({ status: null, diff: '', loading: false })
     }
   },
 
@@ -41,7 +41,7 @@ export const useGitStore = create<GitState>((set) => ({
       set({ branches, loading: false })
     } catch (error) {
       console.error('Failed to refresh branches:', error)
-      set({ loading: false })
+      set({ branches: [], loading: false })
     }
   },
 
@@ -52,7 +52,7 @@ export const useGitStore = create<GitState>((set) => ({
       set({ log, loading: false })
     } catch (error) {
       console.error('Failed to refresh git log:', error)
-      set({ loading: false })
+      set({ log: [], loading: false })
     }
   },
 
