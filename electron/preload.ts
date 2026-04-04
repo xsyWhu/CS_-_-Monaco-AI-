@@ -1,6 +1,9 @@
 import { contextBridge, ipcRenderer, IpcRendererEvent } from 'electron'
 
 export interface ElectronAPI {
+  // Window / Dialog
+  showConfirm(message: string): Promise<boolean>
+
   // File system
   readFile(filePath: string): Promise<string>
   writeFile(filePath: string, content: string): Promise<void>
@@ -54,6 +57,9 @@ export interface ElectronAPI {
 }
 
 const api: ElectronAPI = {
+  // Window / Dialog
+  showConfirm: (message: string) => ipcRenderer.invoke('dialog:confirm', message),
+
   // File system
   readFile: (filePath) => ipcRenderer.invoke('fs:readFile', filePath),
   writeFile: (filePath, content) => ipcRenderer.invoke('fs:writeFile', filePath, content),

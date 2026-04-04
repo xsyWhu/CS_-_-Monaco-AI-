@@ -1,7 +1,13 @@
-import { useCallback } from 'react'
+import { useCallback, useState, useRef } from 'react'
 import { FilePlus, FolderPlus, RefreshCw, ChevronsDownUp } from 'lucide-react'
 import { useFileTreeStore } from '../../stores/file-tree.store'
 import FileTreeItem from './FileTreeItem'
+
+// 定义输入状态类型，包含类型和锁定的目标路径 (隐患一)
+interface NamingState {
+  type: 'file' | 'folder';
+  parentPath: string;
+}
 
 export default function FileExplorer() {
   const rootPath = useFileTreeStore((s) => s.rootPath)
@@ -12,19 +18,52 @@ export default function FileExplorer() {
   const createFile = useFileTreeStore((s) => s.createFile)
   const createFolder = useFileTreeStore((s) => s.createFolder)
 
+  // 使用对象状态锁定目标路径，防止 Context Drift
+  const [naming, setNaming] = useState<NamingState | null>(null)
+  const [tempName, setTempName] = useState('')
+  
+  // 避免在异步操作期间多次提交
+  const isSubmitting = useRef(false)
+
   const rootName = rootPath?.split(/[/\\]/).pop() ?? null
 
+  const handleConfirmCreate = useCallback(async () => {
+    if (isSubmitting.current) return
+    
+    const name = tempName.trim()
+    if (name && naming) {
+      isSubmitting.current = true
+      try {
+        if (naming.type === 'file') {
+          await createFile(naming.parentPath, name)
+        } else {
+          await createFolder(naming.parentPath, name)
+        }
+      } finally {
+        isSubmitting.current = false
+      }
+    }
+    
+    setNaming(null)
+    setTempName('')
+  }, [naming, tempName, createFile, createFolder])
+
   const handleNewFile = useCallback(() => {
-    if (!rootPath) return
-    const name = prompt('Enter file name:')
-    if (name) createFile(rootPath, name)
-  }, [rootPath, createFile])
+    if (!rootPath || naming) return // 互斥逻辑 (隐患二)
+    setNaming({ type: 'file', parentPath: rootPath })
+    setTempName('')
+  }, [rootPath, naming])
 
   const handleNewFolder = useCallback(() => {
-    if (!rootPath) return
-    const name = prompt('Enter folder name:')
-    if (name) createFolder(rootPath, name)
-  }, [rootPath, createFolder])
+    if (!rootPath || naming) return // 互斥逻辑 (隐患二)
+    setNaming({ type: 'folder', parentPath: rootPath })
+    setTempName('')
+  }, [rootPath, naming])
+
+  const handleCancel = useCallback(() => {
+    setNaming(null)
+    setTempName('')
+  }, [])
 
   return (
     <div className="h-full flex flex-col bg-[var(--bg-secondary)]">
@@ -34,14 +73,20 @@ export default function FileExplorer() {
           <div className="flex items-center gap-0.5">
             <button
               onClick={handleNewFile}
-              className="p-1 rounded hover:bg-[var(--bg-hover)] text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors"
+              disabled={!!naming} // 视觉和逻辑双重禁用 (隐患二)
+              className={`p-1 rounded transition-colors ${
+                naming ? 'opacity-30 cursor-not-allowed' : 'hover:bg-[var(--bg-hover)] text-[var(--text-muted)] hover:text-[var(--text-primary)]'
+              }`}
               title="New File"
             >
               <FilePlus size={14} />
             </button>
             <button
               onClick={handleNewFolder}
-              className="p-1 rounded hover:bg-[var(--bg-hover)] text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors"
+              disabled={!!naming}
+              className={`p-1 rounded transition-colors ${
+                naming ? 'opacity-30 cursor-not-allowed' : 'hover:bg-[var(--bg-hover)] text-[var(--text-muted)] hover:text-[var(--text-primary)]'
+              }`}
               title="New Folder"
             >
               <FolderPlus size={14} />
@@ -67,9 +112,7 @@ export default function FileExplorer() {
       <div className="flex-1 overflow-y-auto overflow-x-hidden">
         {!rootPath ? (
           <div className="flex flex-col items-center justify-center h-full gap-3 px-4">
-            <p className="text-[var(--text-muted)] text-xs text-center">
-              No folder opened yet.
-            </p>
+            <p className="text-[var(--text-muted)] text-xs text-center">No folder opened yet.</p>
             <button
               onClick={() => openFolder()}
               className="px-4 py-1.5 rounded text-xs bg-[var(--accent)] text-[var(--bg-primary)] font-medium hover:opacity-90 transition-opacity"
@@ -84,6 +127,31 @@ export default function FileExplorer() {
                 {rootName}
               </div>
             )}
+
+            {/* 修复：在列表顶部插入输入框，并严格处理事件 */}
+            {naming && (
+              <div className="px-4 py-1 flex items-center bg-[var(--bg-tertiary)] border-l-2 border-[var(--accent)]">
+                <input
+                  autoFocus
+                  className="w-full bg-transparent border-none outline-none text-[13px] text-[var(--text-primary)]"
+                  placeholder={naming.type === 'file' ? "file name..." : "folder name..."}
+                  value={tempName}
+                  onChange={(e) => setTempName(e.target.value)}
+                  onKeyDown={(e) => {
+                    // 阻止冒泡：防止触发外层快捷键 (隐患三)
+                    e.stopPropagation()
+                    if (e.key === 'Enter') handleConfirmCreate()
+                    if (e.key === 'Escape') handleCancel()
+                  }}
+                  onBlur={() => {
+                    // 隐患四：失焦处理。如果有内容则创建，否则取消僵尸节点
+                    if (tempName.trim()) handleConfirmCreate()
+                    else handleCancel()
+                  }}
+                />
+              </div>
+            )}
+
             {entries.map((entry) => (
               <FileTreeItem key={entry.path} entry={entry} depth={0} />
             ))}

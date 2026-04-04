@@ -66,6 +66,9 @@ export interface GitLogEntry {
 }
 
 export interface ElectronAPI {
+  // Window / Dialog
+  showConfirm(message: string): Promise<boolean>
+
   // File system
   readFile(filePath: string): Promise<string>
   writeFile(filePath: string, content: string): Promise<void>

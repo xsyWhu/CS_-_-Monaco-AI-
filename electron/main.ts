@@ -1,4 +1,4 @@
-import { app, BrowserWindow, shell } from 'electron'
+import { app, BrowserWindow, shell, ipcMain, dialog } from 'electron'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import { join } from 'path'
 import { registerAllIPC } from './ipc'
@@ -49,7 +49,23 @@ app.whenReady().then(() => {
   })
 
   registerAllIPC()
-  createWindow()
+  const mainWindow = createWindow()
+
+  // 用 Electron 原生 dialog 替代 window.confirm()。
+  // window.confirm() 会使 BrowserWindow 失去 OS 键盘焦点，且渲染进程无法自行恢复。
+  // dialog.showMessageBox() 由主进程管理，对话框关闭后 Electron 会正确归还键盘焦点。
+  ipcMain.handle('dialog:confirm', async (_event, message: string) => {
+    const { response } = await dialog.showMessageBox(mainWindow, {
+      type: 'question',
+      buttons: ['Cancel', 'Delete'],
+      defaultId: 1,
+      cancelId: 0,
+      message,
+    })
+    mainWindow.focus()
+    mainWindow.webContents.focus()
+    return response === 1
+  })
 
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) {
