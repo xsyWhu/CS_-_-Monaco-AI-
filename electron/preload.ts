@@ -39,6 +39,8 @@ export interface ElectronAPI {
   sendMessage(message: string, conversationId?: string, workspacePath?: string): Promise<string>
   cancelAgent(conversationId: string): Promise<void>
   getConversations(): Promise<unknown[]>
+  getConversation(conversationId: string): Promise<unknown>
+  deleteConversation(conversationId: string): Promise<void>
   getSettings(): Promise<unknown>
   updateSettings(settings: object): Promise<void>
 
@@ -98,6 +100,8 @@ const api: ElectronAPI = {
     ipcRenderer.invoke('agent:sendMessage', message, conversationId, workspacePath),
   cancelAgent: (conversationId) => ipcRenderer.invoke('agent:cancel', conversationId),
   getConversations: () => ipcRenderer.invoke('agent:getConversations'),
+  getConversation: (conversationId) => ipcRenderer.invoke('agent:getConversation', conversationId),
+  deleteConversation: (conversationId) => ipcRenderer.invoke('agent:deleteConversation', conversationId),
   getSettings: () => ipcRenderer.invoke('agent:getSettings'),
   updateSettings: (settings) => ipcRenderer.invoke('agent:updateSettings', settings),
 

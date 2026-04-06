@@ -109,6 +109,8 @@ export interface ElectronAPI {
   sendMessage(message: string, conversationId?: string, workspacePath?: string): Promise<string>
   cancelAgent(conversationId: string): Promise<void>
   getConversations(): Promise<Array<{ id: string; title: string; createdAt: number; updatedAt: number }>>
+  getConversation(conversationId: string): Promise<any>
+  deleteConversation(conversationId: string): Promise<void>
   getSettings(): Promise<{ provider: any; workspacePath: string }>
   updateSettings(settings: any): Promise<void>
 

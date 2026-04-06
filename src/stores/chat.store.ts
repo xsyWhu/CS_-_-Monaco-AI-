@@ -16,8 +16,43 @@ interface ChatState {
   handleError: (error: string) => void
   cancelStream: () => Promise<void>
   loadConversations: () => Promise<void>
+  switchConversation: (conversationId: string) => Promise<void>
+  deleteConversation: (conversationId: string) => Promise<void>
   newConversation: () => void
   clearMessages: () => void
+}
+
+// Helper function to convert backend Message to frontend ChatMessage
+function convertMessagesToChatFormat(messages: any[], conversationId?: string): ChatMessage[] {
+  if (!Array.isArray(messages)) return []
+  
+  return messages.map((msg, index) => {
+    // Generate a stable ID based on conversation ID, message index, and content hash
+    // This ensures the same ID across multiple loads but still unique per message
+    let messageId: string
+    if (msg.id) {
+      messageId = msg.id
+    } else {
+      // Create a deterministic ID from conversation + index + content prefix
+      const contentHash = msg.content?.substring(0, 20).replace(/[^a-z0-9]/gi, '') || 'empty'
+      messageId = `${conversationId || 'local'}-${index}-${msg.role}-${contentHash}`
+    }
+    
+    return {
+      id: messageId,
+      role: msg.role as 'user' | 'assistant' | 'system',
+      content: msg.content || '',
+      timestamp: msg.timestamp || 0, // Use 0 for historical messages so they sort correctly
+      toolCalls: msg.tool_calls?.map((tc: any) => ({
+        id: tc.id,
+        name: tc.function?.name || tc.name || '',
+        arguments: tc.function?.arguments || tc.arguments,
+        result: tc.result,
+        status: tc.status || 'completed' as const,
+      })) || undefined,
+      isStreaming: false, // Historical messages are never streaming
+    }
+  })
 }
 
 export const useChatStore = create<ChatState>((set, get) => ({
@@ -57,9 +92,11 @@ export const useChatStore = create<ChatState>((set, get) => ({
         workspacePath,
       )
       set({ conversationId })
+      return conversationId
     } catch (error) {
       console.error('Failed to send message:', error)
       set({ isStreaming: false })
+      throw error
     }
   },
 
@@ -202,6 +239,36 @@ export const useChatStore = create<ChatState>((set, get) => ({
       set({ conversations })
     } catch (error) {
       console.error('Failed to load conversations:', error)
+    }
+  },
+
+  switchConversation: async (conversationId: string) => {
+    try {
+      const conversation = await window.api.getConversation(conversationId)
+      if (conversation) {
+        const convertedMessages = convertMessagesToChatFormat(conversation.messages, conversationId)
+        set({
+          conversationId,
+          messages: convertedMessages,
+          isStreaming: false,
+          currentStreamText: '',
+        })
+      }
+    } catch (error) {
+      console.error('Failed to switch conversation:', error)
+    }
+  },
+
+  deleteConversation: async (conversationId: string) => {
+    try {
+      await window.api.deleteConversation(conversationId)
+      await get().loadConversations()
+      // If deleted conv is current, clear messages
+      if (get().conversationId === conversationId) {
+        get().newConversation()
+      }
+    } catch (error) {
+      console.error('Failed to delete conversation:', error)
     }
   },
 
