@@ -8,6 +8,7 @@ interface FileTreeState {
   selectedPath: string | null
 
   openFolder: () => Promise<void>
+  selectFile: () => Promise<string | null>
   setRootPath: (path: string) => Promise<void>
   loadChildren: (dirPath: string) => Promise<void>
   toggleDirectory: (path: string) => void
@@ -65,6 +66,10 @@ export const useFileTreeStore = create<FileTreeState>((set, get) => ({
   openFolder: async () => {
     const selected = await window.api.selectDirectory()
     if (selected) await get().setRootPath(selected)
+  },
+
+  selectFile: async () => {
+    return await window.api.selectFile()
   },
 
   setRootPath: async (path) => {

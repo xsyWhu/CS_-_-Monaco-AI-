@@ -38,7 +38,7 @@ export default function EditorTab({ tab, isActive }: EditorTabProps) {
         <button
           onClick={(e) => {
             e.stopPropagation()
-            closeTab(tab.id)
+            void closeTab(tab.id)
           }}
           className={cn(
             'items-center justify-center w-4 h-4 rounded-sm hover:bg-[var(--bg-hover)] text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors',

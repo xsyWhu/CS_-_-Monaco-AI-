@@ -2,6 +2,7 @@ import { useEditorStore } from '@/stores/editor.store'
 import EditorTab from './EditorTab'
 import MonacoWrapper from './MonacoWrapper'
 import { Code2 } from 'lucide-react'
+import { useEffect } from 'react'
 
 export default function EditorArea() {
   const tabs = useEditorStore((s) => s.tabs)
@@ -9,8 +10,25 @@ export default function EditorArea() {
   const pendingReveal = useEditorStore((s) => s.pendingReveal)
   const clearPendingReveal = useEditorStore((s) => s.clearPendingReveal)
   const updateTabContent = useEditorStore((s) => s.updateTabContent)
+  const saveTab = useEditorStore((s) => s.saveTab)
 
   const activeTab = tabs.find((t) => t.id === activeTabId)
+
+  useEffect(() => {
+    const handler = (event: KeyboardEvent) => {
+      if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 's') {
+        event.preventDefault()
+        if (activeTabId) {
+          void saveTab(activeTabId).catch((error) => {
+            console.error('Failed to save active tab:', error)
+          })
+        }
+      }
+    }
+
+    window.addEventListener('keydown', handler)
+    return () => window.removeEventListener('keydown', handler)
+  }, [activeTabId, saveTab])
 
   if (tabs.length === 0) {
     return (
@@ -54,6 +72,11 @@ export default function EditorArea() {
               if (value !== undefined) {
                 updateTabContent(activeTab.id, value)
               }
+            }}
+            onSave={() => {
+              void saveTab(activeTab.id).catch((error) => {
+                console.error('Failed to save active tab:', error)
+              })
             }}
           />
         )}

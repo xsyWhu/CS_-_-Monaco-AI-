@@ -12,6 +12,7 @@ interface MonacoWrapperProps {
   } | null
   onRevealHandled?: () => void
   onChange: (value: string | undefined) => void
+  onSave?: () => void
 }
 
 export default function MonacoWrapper({
@@ -21,6 +22,7 @@ export default function MonacoWrapper({
   revealPosition,
   onRevealHandled,
   onChange,
+  onSave,
 }: MonacoWrapperProps) {
   const editorRef = useRef<Monaco.editor.IStandaloneCodeEditor | null>(null)
 
@@ -42,8 +44,13 @@ export default function MonacoWrapper({
     onRevealHandled?.()
   }
 
-  const handleMount: OnMount = (editor) => {
+  const handleMount: OnMount = (editor, monaco) => {
     editorRef.current = editor
+    if (onSave) {
+      editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyS, () => {
+        onSave()
+      })
+    }
     revealPositionInEditor()
   }
 

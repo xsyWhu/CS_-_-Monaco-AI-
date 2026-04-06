@@ -3,6 +3,7 @@ import { contextBridge, ipcRenderer, IpcRendererEvent } from 'electron'
 export interface ElectronAPI {
   // Window / Dialog
   showConfirm(message: string): Promise<boolean>
+  showUnsavedChangesDialog(fileName: string): Promise<'save' | 'dont_save' | 'cancel'>
 
   // File system
   readFile(filePath: string): Promise<string>
@@ -15,6 +16,7 @@ export interface ElectronAPI {
   watchDirectory(dirPath: string): Promise<string>
   unwatchDirectory(dirPath: string): Promise<void>
   selectDirectory(): Promise<string | null>
+  selectFile(): Promise<string | null>
 
   // Terminal
   createTerminal(options?: { cwd?: string; shell?: string }): Promise<{ id: string }>
@@ -59,6 +61,8 @@ export interface ElectronAPI {
 const api: ElectronAPI = {
   // Window / Dialog
   showConfirm: (message: string) => ipcRenderer.invoke('dialog:confirm', message),
+  showUnsavedChangesDialog: (fileName: string) =>
+    ipcRenderer.invoke('dialog:unsavedChanges', fileName),
 
   // File system
   readFile: (filePath) => ipcRenderer.invoke('fs:readFile', filePath),
@@ -71,6 +75,7 @@ const api: ElectronAPI = {
   watchDirectory: (dirPath) => ipcRenderer.invoke('fs:watchDirectory', dirPath),
   unwatchDirectory: (dirPath) => ipcRenderer.invoke('fs:unwatchDirectory', dirPath),
   selectDirectory: () => ipcRenderer.invoke('fs:selectDirectory'),
+  selectFile: () => ipcRenderer.invoke('fs:selectFile'),
 
   // Terminal
   createTerminal: (options?) => ipcRenderer.invoke('terminal:create', options),

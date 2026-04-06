@@ -15,7 +15,7 @@ interface EditorState {
 
   openFile: (filePath: string) => Promise<void>
   openFileAtPosition: (filePath: string, line: number, column: number) => Promise<void>
-  closeTab: (tabId: string) => void
+  closeTab: (tabId: string) => Promise<void>
   setActiveTab: (tabId: string) => void
   updateTabContent: (tabId: string, content: string) => void
   saveTab: (tabId: string) => Promise<void>
@@ -61,7 +61,23 @@ export const useEditorStore = create<EditorState>((set, get) => ({
     })
   },
 
-  closeTab: (tabId) => {
+  closeTab: async (tabId) => {
+    const targetTab = get().tabs.find((t) => t.id === tabId)
+    if (!targetTab) return
+
+    if (targetTab.isDirty) {
+      const choice = await window.api.showUnsavedChangesDialog(targetTab.fileName)
+      if (choice === 'cancel') return
+      if (choice === 'save') {
+        try {
+          await get().saveTab(tabId)
+        } catch (error) {
+          console.error('Failed to save file before closing tab:', error)
+          return
+        }
+      }
+    }
+
     const { tabs, activeTabId } = get()
     const filtered = tabs.filter((t) => t.id !== tabId)
     let newActiveId = activeTabId

@@ -68,6 +68,7 @@ export interface GitLogEntry {
 export interface ElectronAPI {
   // Window / Dialog
   showConfirm(message: string): Promise<boolean>
+  showUnsavedChangesDialog(fileName: string): Promise<'save' | 'dont_save' | 'cancel'>
 
   // File system
   readFile(filePath: string): Promise<string>
@@ -80,6 +81,7 @@ export interface ElectronAPI {
   watchDirectory(dirPath: string): Promise<void>
   unwatchDirectory(dirPath: string): Promise<void>
   selectDirectory(): Promise<string | null>
+  selectFile(): Promise<string | null>
 
   // Terminal
   createTerminal(options?: { cwd?: string; shell?: string }): Promise<{ id: string }>

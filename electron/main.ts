@@ -67,6 +67,24 @@ app.whenReady().then(() => {
     return response === 1
   })
 
+  ipcMain.handle('dialog:unsavedChanges', async (_event, fileName: string) => {
+    const { response } = await dialog.showMessageBox(mainWindow, {
+      type: 'warning',
+      buttons: ['Save', "Don't Save", 'Cancel'],
+      defaultId: 0,
+      cancelId: 2,
+      message: `Do you want to save the changes you made to ${fileName}?`,
+      detail: "Your changes will be lost if you don't save them.",
+    })
+
+    mainWindow.focus()
+    mainWindow.webContents.focus()
+
+    if (response === 0) return 'save'
+    if (response === 1) return 'dont_save'
+    return 'cancel'
+  })
+
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) {
       createWindow()

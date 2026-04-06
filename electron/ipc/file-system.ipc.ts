@@ -50,6 +50,18 @@ export function registerFileSystemIPC(): void {
     return result.filePaths[0]
   })
 
+  ipcMain.handle('fs:selectFile', async () => {
+    const result = await dialog.showOpenDialog({
+      properties: ['openFile'],
+    })
+
+    if (result.canceled || result.filePaths.length === 0) {
+      return null
+    }
+
+    return result.filePaths[0]
+  })
+
   ipcMain.handle('fs:watchDirectory', (event: IpcMainInvokeEvent, dirPath: string) => {
     return fileSystemService.watchDirectory(dirPath, (eventType, filePath) => {
       event.sender.send('fs:fileChanged', eventType, filePath)
