@@ -12,7 +12,6 @@ interface NamingState {
 export default function FileExplorer() {
   const rootPath = useFileTreeStore((s) => s.rootPath)
   const entries = useFileTreeStore((s) => s.entries)
-  const openFolder = useFileTreeStore((s) => s.openFolder)
   const selectFile = useFileTreeStore((s) => s.selectFile)
   const setRootPath = useFileTreeStore((s) => s.setRootPath)
   const setSelectedPath = useFileTreeStore((s) => s.setSelectedPath)
@@ -22,6 +21,8 @@ export default function FileExplorer() {
   const createFolder = useFileTreeStore((s) => s.createFolder)
 
   const openFile = useEditorStore((s) => s.openFile)
+  const confirmAndHandleDirtyTabs = useEditorStore((s) => s.confirmAndHandleDirtyTabs)
+  const pruneTabsByWorkspace = useEditorStore((s) => s.pruneTabsByWorkspace)
 
   const [naming, setNaming] = useState<NamingState | null>(null)
   const [tempName, setTempName] = useState('')
@@ -68,8 +69,20 @@ export default function FileExplorer() {
   }, [])
 
   const handleOpenFolder = useCallback(async () => {
-    await openFolder()
-  }, [openFolder])
+    const selected = await window.api.selectDirectory()
+    if (!selected) return
+
+    const currentRoot = rootPath?.replace(/\\/g, '/').toLowerCase() ?? ''
+    const nextRoot = selected.replace(/\\/g, '/').toLowerCase()
+
+    if (currentRoot && currentRoot !== nextRoot) {
+      const confirmed = await confirmAndHandleDirtyTabs()
+      if (!confirmed) return
+    }
+
+    await setRootPath(selected)
+    pruneTabsByWorkspace(selected)
+  }, [rootPath, confirmAndHandleDirtyTabs, setRootPath, pruneTabsByWorkspace])
 
   const handleOpenFile = useCallback(async () => {
     const selectedFile = await selectFile()
@@ -81,12 +94,28 @@ export default function FileExplorer() {
     const parentPath = parts.join(sep)
 
     if (parentPath) {
+      const currentRoot = rootPath?.replace(/\\/g, '/').toLowerCase() ?? ''
+      const nextRoot = parentPath.replace(/\\/g, '/').toLowerCase()
+      if (currentRoot && currentRoot !== nextRoot) {
+        const confirmed = await confirmAndHandleDirtyTabs()
+        if (!confirmed) return
+      }
+
       await setRootPath(parentPath)
+      pruneTabsByWorkspace(parentPath)
       setSelectedPath(selectedFile)
     }
 
     await openFile(selectedFile)
-  }, [selectFile, setRootPath, setSelectedPath, openFile])
+  }, [
+    selectFile,
+    rootPath,
+    confirmAndHandleDirtyTabs,
+    setRootPath,
+    pruneTabsByWorkspace,
+    setSelectedPath,
+    openFile,
+  ])
 
   return (
     <div className="h-full flex flex-col bg-[var(--bg-secondary)]">

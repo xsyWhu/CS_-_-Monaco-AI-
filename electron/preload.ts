@@ -4,6 +4,7 @@ export interface ElectronAPI {
   // Window / Dialog
   showConfirm(message: string): Promise<boolean>
   showUnsavedChangesDialog(fileName: string): Promise<'save' | 'dont_save' | 'cancel'>
+  confirmClose(): Promise<void>
 
   // File system
   readFile(filePath: string): Promise<string>
@@ -41,6 +42,8 @@ export interface ElectronAPI {
   sendMessage(message: string, conversationId?: string, workspacePath?: string): Promise<string>
   cancelAgent(conversationId: string): Promise<void>
   getConversations(): Promise<unknown[]>
+  getConversation(conversationId: string): Promise<unknown>
+  deleteConversation(conversationId: string): Promise<void>
   getSettings(): Promise<unknown>
   updateSettings(settings: object): Promise<void>
 
@@ -56,6 +59,7 @@ export interface ElectronAPI {
   ): () => void
   onAgentComplete(callback: (data: { conversationId: string; message: unknown }) => void): () => void
   onAgentError(callback: (data: { conversationId: string; error: string }) => void): () => void
+  onAppRequestClose(callback: () => void): () => void
 }
 
 const api: ElectronAPI = {
@@ -63,6 +67,7 @@ const api: ElectronAPI = {
   showConfirm: (message: string) => ipcRenderer.invoke('dialog:confirm', message),
   showUnsavedChangesDialog: (fileName: string) =>
     ipcRenderer.invoke('dialog:unsavedChanges', fileName),
+  confirmClose: () => ipcRenderer.invoke('app:confirmClose'),
 
   // File system
   readFile: (filePath) => ipcRenderer.invoke('fs:readFile', filePath),
@@ -103,6 +108,8 @@ const api: ElectronAPI = {
     ipcRenderer.invoke('agent:sendMessage', message, conversationId, workspacePath),
   cancelAgent: (conversationId) => ipcRenderer.invoke('agent:cancel', conversationId),
   getConversations: () => ipcRenderer.invoke('agent:getConversations'),
+  getConversation: (conversationId) => ipcRenderer.invoke('agent:getConversation', conversationId),
+  deleteConversation: (conversationId) => ipcRenderer.invoke('agent:deleteConversation', conversationId),
   getSettings: () => ipcRenderer.invoke('agent:getSettings'),
   updateSettings: (settings) => ipcRenderer.invoke('agent:updateSettings', settings),
 
@@ -189,6 +196,16 @@ const api: ElectronAPI = {
     ipcRenderer.on('agent:error', handler)
     return () => {
       ipcRenderer.removeListener('agent:error', handler)
+    }
+  },
+
+  onAppRequestClose: (callback) => {
+    const handler = (): void => {
+      callback()
+    }
+    ipcRenderer.on('app:requestClose', handler)
+    return () => {
+      ipcRenderer.removeListener('app:requestClose', handler)
     }
   },
 }

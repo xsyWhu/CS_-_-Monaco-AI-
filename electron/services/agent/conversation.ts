@@ -58,4 +58,11 @@ export default class ConversationManager {
   clear(): void {
     this.conversations.clear()
   }
+
+  loadFromArray(conversations: Conversation[]): void {
+    this.conversations.clear()
+    conversations.forEach((conv) => {
+      this.conversations.set(conv.id, conv)
+    })
+  }
 }

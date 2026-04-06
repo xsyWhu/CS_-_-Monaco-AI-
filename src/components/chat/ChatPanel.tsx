@@ -1,26 +1,42 @@
 import { useEffect, useRef, useState } from 'react'
-import { Plus, Settings, Loader2, Square } from 'lucide-react'
+import { Plus, Settings, Loader2, Square, ChevronRight } from 'lucide-react'
 import { useChatStore } from '@/stores/chat.store'
 import { useSettingsStore } from '@/stores/settings.store'
 import { useAgent } from '@/hooks/useAgent'
 import ChatMessage from './ChatMessage'
 import ChatInput from './ChatInput'
 import SettingsDialog from '../settings/SettingsDialog'
+import ConversationList from './ConversationList'
 
 export default function ChatPanel() {
   const messages = useChatStore((s) => s.messages)
+  const conversationId = useChatStore((s) => s.conversationId)
   const isStreaming = useChatStore((s) => s.isStreaming)
   const newConversation = useChatStore((s) => s.newConversation)
+  const loadConversations = useChatStore((s) => s.loadConversations)
   const provider = useSettingsStore((s) => s.provider)
 
   const { sendMessage, cancelStream } = useAgent()
 
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const [settingsOpen, setSettingsOpen] = useState(false)
+  const [historyVisible, setHistoryVisible] = useState(false)
+
+  useEffect(() => {
+    loadConversations()
+  }, [loadConversations])
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages, isStreaming])
+
+  const handleNewConversation = async () => {
+    newConversation()
+    // Delay loading to let the UI settle
+    setTimeout(() => {
+      loadConversations()
+    }, 300)
+  }
 
   return (
     <div className="h-full flex flex-col bg-[var(--bg-secondary)]">
@@ -36,7 +52,14 @@ export default function ChatPanel() {
         </div>
         <div className="flex items-center gap-0.5">
           <button
-            onClick={newConversation}
+            onClick={() => setHistoryVisible(!historyVisible)}
+            className="p-1.5 rounded hover:bg-[var(--bg-hover)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors"
+            title="History"
+          >
+            <ChevronRight size={16} />
+          </button>
+          <button
+            onClick={handleNewConversation}
             className="p-1.5 rounded hover:bg-[var(--bg-hover)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors"
             title="New conversation"
           >
@@ -51,6 +74,13 @@ export default function ChatPanel() {
           </button>
         </div>
       </div>
+
+      {/* History Panel */}
+      {historyVisible && (
+        <div className="border-b border-[var(--border)] bg-[var(--bg-tertiary)]/30 overflow-y-auto max-h-40">
+          <ConversationList isVisible={true} />
+        </div>
+      )}
 
       {/* Messages */}
       <div className="flex-1 overflow-y-auto px-3 py-4 space-y-4">

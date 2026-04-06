@@ -32,11 +32,13 @@ export default class AgentService {
   private currentProvider: LLMProvider | null = null
   private activeLoops: Map<string, AgentLoop> = new Map()
   private settingsPath: string
+  private conversationsPath: string
 
   constructor() {
     this.toolRegistry = new ToolRegistry()
     this.conversationManager = new ConversationManager()
     this.settingsPath = path.join(app.getPath('userData'), 'agent-settings.json')
+    this.conversationsPath = path.join(app.getPath('userData'), 'conversations.json')
 
     this.toolRegistry.register(readFileTool)
     this.toolRegistry.register(writeFileTool)
@@ -46,6 +48,7 @@ export default class AgentService {
     this.toolRegistry.register(runCommandTool)
 
     this.loadSettings()
+    this.loadConversations()
   }
 
   getSettings(): AgentSettings {
@@ -154,10 +157,12 @@ export default class AgentService {
           })
         }
         this.activeLoops.delete(conversationId)
+        this.saveConversations()
         callbacks.onComplete(fullResponse)
       },
       onError: (error: string) => {
         this.activeLoops.delete(conversationId)
+        this.saveConversations()
         callbacks.onError(error)
       },
     }
@@ -184,6 +189,7 @@ export default class AgentService {
   deleteConversation(id: string): void {
     this.cancel(id)
     this.conversationManager.delete(id)
+    this.saveConversations()
   }
 
   clearConversations(): void {
@@ -191,10 +197,44 @@ export default class AgentService {
       this.cancel(id)
     }
     this.conversationManager.clear()
+    this.saveConversations()
   }
 
   getToolRegistry(): ToolRegistry {
     return this.toolRegistry
+  }
+
+  private loadConversations(): void {
+    try {
+      if (fs.existsSync(this.conversationsPath)) {
+        const raw = fs.readFileSync(this.conversationsPath, 'utf-8')
+        const conversations: Conversation[] = JSON.parse(raw)
+        this.conversationManager.loadFromArray(conversations)
+        console.log(`[Agent] Loaded ${conversations.length} conversations from disk`)
+      }
+    } catch (error) {
+      console.error('[Agent] Failed to load conversations:', error)
+    }
+  }
+
+  private saveConversations(): void {
+    try {
+      // Only save conversations that have messages (not empty conversations)
+      const conversations = this.conversationManager.getAll()
+      const conversationsWithMessages = conversations.filter((conv) => conv.messages.length > 0)
+      
+      const dir = path.dirname(this.conversationsPath)
+      if (!fs.existsSync(dir)) {
+        fs.mkdirSync(dir, { recursive: true })
+      }
+      fs.writeFileSync(
+        this.conversationsPath,
+        JSON.stringify(conversationsWithMessages, null, 2),
+        'utf-8',
+      )
+    } catch (error) {
+      console.error('[Agent] Failed to save conversations:', error)
+    }
   }
 
   private loadSettings(): void {

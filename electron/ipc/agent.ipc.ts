@@ -85,6 +85,14 @@ export function registerAgentIPC(): void {
     return agentService.getConversations()
   })
 
+  ipcMain.handle('agent:getConversation', (_event: IpcMainInvokeEvent, conversationId: string) => {
+    return agentService.getConversation(conversationId)
+  })
+
+  ipcMain.handle('agent:deleteConversation', (_event: IpcMainInvokeEvent, conversationId: string) => {
+    agentService.deleteConversation(conversationId)
+  })
+
   ipcMain.handle('agent:getSettings', () => {
     return agentService.getSettings()
   })

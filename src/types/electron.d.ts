@@ -69,6 +69,7 @@ export interface ElectronAPI {
   // Window / Dialog
   showConfirm(message: string): Promise<boolean>
   showUnsavedChangesDialog(fileName: string): Promise<'save' | 'dont_save' | 'cancel'>
+  confirmClose(): Promise<void>
 
   // File system
   readFile(filePath: string): Promise<string>
@@ -111,6 +112,8 @@ export interface ElectronAPI {
   sendMessage(message: string, conversationId?: string, workspacePath?: string): Promise<string>
   cancelAgent(conversationId: string): Promise<void>
   getConversations(): Promise<Array<{ id: string; title: string; createdAt: number; updatedAt: number }>>
+  getConversation(conversationId: string): Promise<any>
+  deleteConversation(conversationId: string): Promise<void>
   getSettings(): Promise<{ provider: any; workspacePath: string }>
   updateSettings(settings: any): Promise<void>
 
@@ -122,6 +125,7 @@ export interface ElectronAPI {
   onAgentToolCall(callback: (data: { conversationId: string; toolCall: any }) => void): () => void
   onAgentComplete(callback: (data: { conversationId: string; message: string }) => void): () => void
   onAgentError(callback: (data: { conversationId: string; error: string }) => void): () => void
+  onAppRequestClose(callback: () => void): () => void
 }
 
 declare global {

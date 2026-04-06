@@ -50,6 +50,9 @@ app.whenReady().then(() => {
 
   registerAllIPC()
   const mainWindow = createWindow()
+  let forceClose = false
+  let closeRequested = false
+  let forceCloseTimer: NodeJS.Timeout | null = null
 
   // 用 Electron 原生 dialog 替代 window.confirm()。
   // window.confirm() 会使 BrowserWindow 失去 OS 键盘焦点，且渲染进程无法自行恢复。
@@ -83,6 +86,36 @@ app.whenReady().then(() => {
     if (response === 0) return 'save'
     if (response === 1) return 'dont_save'
     return 'cancel'
+  })
+
+  mainWindow.on('close', (event) => {
+    if (forceClose) return
+
+    event.preventDefault()
+    if (closeRequested) return
+
+    closeRequested = true
+    mainWindow.webContents.send('app:requestClose')
+
+    forceCloseTimer = setTimeout(() => {
+      if (!mainWindow.isDestroyed()) {
+        forceClose = true
+        mainWindow.close()
+      }
+    }, 5000)
+  })
+
+  ipcMain.handle('app:confirmClose', async () => {
+    if (forceCloseTimer) {
+      clearTimeout(forceCloseTimer)
+      forceCloseTimer = null
+    }
+    closeRequested = false
+
+    if (!mainWindow.isDestroyed()) {
+      forceClose = true
+      mainWindow.close()
+    }
   })
 
   app.on('activate', () => {
