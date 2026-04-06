@@ -31,6 +31,8 @@ export interface FileNameResult {
 export interface GitStatus {
   current: string | null
   tracking: string | null
+  ahead: number
+  behind: number
   files: Array<{
     path: string
     index: string
@@ -38,10 +40,14 @@ export interface GitStatus {
   }>
   staged: string[]
   modified: string[]
-  not_added: string[]
-  created: string[]
+  untracked: string[]
   deleted: string[]
   conflicted: string[]
+  renamed: Array<{
+    from: string
+    to: string
+  }>
+  isClean: boolean
 }
 
 export interface GitBranch {
@@ -55,8 +61,8 @@ export interface GitLogEntry {
   hash: string
   date: string
   message: string
-  author_name: string
-  author_email: string
+  author: string
+  email: string
 }
 
 export interface ElectronAPI {

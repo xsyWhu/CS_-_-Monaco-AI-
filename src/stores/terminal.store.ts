@@ -1,4 +1,5 @@
 import { create } from 'zustand'
+import { useFileTreeStore } from './file-tree.store'
 
 interface TerminalInfo {
   id: string
@@ -19,7 +20,8 @@ export const useTerminalStore = create<TerminalState>((set, get) => ({
   activeTerminalId: null,
 
   createTerminal: async () => {
-    const result = await window.api.createTerminal()
+    const cwd = useFileTreeStore.getState().rootPath ?? undefined
+    const result = await window.api.createTerminal({ cwd })
     const { terminals } = get()
     const terminal: TerminalInfo = {
       id: result.id,

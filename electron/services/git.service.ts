@@ -5,6 +5,11 @@ export interface GitStatusResult {
   tracking: string | null
   ahead: number
   behind: number
+  files: Array<{
+    path: string
+    index: string
+    working_dir: string
+  }>
   modified: string[]
   staged: string[]
   untracked: string[]
@@ -44,6 +49,11 @@ export default class GitService {
         tracking: result.tracking,
         ahead: result.ahead,
         behind: result.behind,
+        files: result.files.map((file) => ({
+          path: file.path,
+          index: file.index,
+          working_dir: file.working_dir,
+        })),
         modified: result.modified,
         staged: result.staged,
         untracked: result.not_added,
