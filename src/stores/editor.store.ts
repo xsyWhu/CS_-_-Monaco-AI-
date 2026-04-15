@@ -1,15 +1,18 @@
 import { create } from 'zustand'
-import type { FileTab } from '../types/editor.types'
+import type { CursorPosition, EditorProblem, FileTab } from '../types/editor.types'
 import { generateId, getLanguageFromFileName } from '../lib/utils'
 
 interface EditorState {
   tabs: FileTab[]
   activeTabId: string | null
+  cursorPosition: CursorPosition
+  problems: EditorProblem[]
   pendingReveal:
     | {
         filePath: string
         line: number
         column: number
+        requestId: number
       }
     | null
 
@@ -24,6 +27,8 @@ interface EditorState {
   confirmAndHandleDirtyTabs: () => Promise<boolean>
   pruneTabsByWorkspace: (workspacePath: string) => void
   reloadFileFromDisk: (filePath: string) => Promise<void>
+  setCursorPosition: (position: CursorPosition) => void
+  setProblems: (problems: EditorProblem[]) => void
   clearPendingReveal: () => void
 }
 
@@ -40,6 +45,8 @@ function isInsideWorkspace(filePath: string, workspacePath: string): boolean {
 export const useEditorStore = create<EditorState>((set, get) => ({
   tabs: [],
   activeTabId: null,
+  cursorPosition: { line: 1, column: 1 },
+  problems: [],
   pendingReveal: null,
 
   openFile: async (filePath) => {
@@ -72,6 +79,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
         filePath,
         line,
         column,
+        requestId: Date.now() + Math.floor(Math.random() * 1000),
       },
     })
   },
@@ -104,6 +112,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
     set({
       tabs: filtered.map((t) => ({ ...t, isActive: t.id === newActiveId })),
       activeTabId: newActiveId,
+      problems: get().problems.filter((p) => p.filePath !== targetTab.filePath),
     })
   },
 
@@ -176,6 +185,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
     set({
       tabs: filtered.map((t) => ({ ...t, isActive: t.id === nextActiveId })),
       activeTabId: nextActiveId,
+      problems: get().problems.filter((p) => isInsideWorkspace(p.filePath, workspacePath)),
     })
   },
 
@@ -204,8 +214,17 @@ export const useEditorStore = create<EditorState>((set, get) => ({
       set({
         tabs: filtered.map((t) => ({ ...t, isActive: t.id === nextActiveId })),
         activeTabId: nextActiveId,
+        problems: get().problems.filter((p) => normalizePath(p.filePath) !== normalizePath(filePath)),
       })
     }
+  },
+
+  setCursorPosition: (position) => {
+    set({ cursorPosition: position })
+  },
+
+  setProblems: (problems) => {
+    set({ problems })
   },
 
   clearPendingReveal: () => set({ pendingReveal: null }),

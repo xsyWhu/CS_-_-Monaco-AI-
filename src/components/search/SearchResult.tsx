@@ -1,5 +1,6 @@
 import { File } from 'lucide-react'
 import { useEditorStore } from '@/stores/editor.store'
+import { useFileTreeStore } from '@/stores/file-tree.store'
 import type { SearchResult, FileNameResult } from '@/types/electron'
 
 interface Props {
@@ -48,14 +49,36 @@ function highlightText(text: string, query: string) {
 export default function SearchResultItem({ result, type, query }: Props) {
   const openFile = useEditorStore((s) => s.openFile)
   const openFileAtPosition = useEditorStore((s) => s.openFileAtPosition)
+  const rootPath = useFileTreeStore((s) => s.rootPath)
+  const setRootPath = useFileTreeStore((s) => s.setRootPath)
+  const setSelectedPath = useFileTreeStore((s) => s.setSelectedPath)
 
-  const handleClick = () => {
+  const ensureWorkspaceForFile = async (filePath: string) => {
+    const currentRoot = rootPath?.replace(/\\/g, '/').toLowerCase() ?? ''
+    const targetPath = filePath.replace(/\\/g, '/').toLowerCase()
+
+    if (!currentRoot || !targetPath.startsWith(`${currentRoot}/`)) {
+      const sep = filePath.includes('\\') ? '\\' : '/'
+      const parentParts = filePath.split(/[/\\]/)
+      parentParts.pop()
+      const parentPath = parentParts.join(sep)
+      if (parentPath) {
+        await setRootPath(parentPath)
+      }
+    }
+
+    setSelectedPath(filePath)
+  }
+
+  const handleClick = async () => {
     if (type === 'content') {
       const r = result as SearchResult
-      openFileAtPosition(r.filePath, r.line, r.column)
+      await ensureWorkspaceForFile(r.filePath)
+      await openFileAtPosition(r.filePath, r.line, r.column)
     } else {
       const r = result as FileNameResult
-      openFile(r.filePath)
+      await ensureWorkspaceForFile(r.filePath)
+      await openFile(r.filePath)
     }
   }
 
@@ -67,7 +90,9 @@ export default function SearchResultItem({ result, type, query }: Props) {
 
     return (
       <button
-        onClick={handleClick}
+        onClick={() => {
+          void handleClick()
+        }}
         className="w-full text-left px-3 py-1.5 hover:bg-[var(--bg-hover)] transition-colors border-b border-[var(--border)]/30"
       >
         <div className="flex items-center gap-1.5 text-xs">
@@ -91,7 +116,9 @@ export default function SearchResultItem({ result, type, query }: Props) {
 
   return (
     <button
-      onClick={handleClick}
+      onClick={() => {
+        void handleClick()
+      }}
       className="w-full text-left px-3 py-1.5 hover:bg-[var(--bg-hover)] transition-colors border-b border-[var(--border)]/30"
     >
       <div className="flex items-center gap-1.5 text-xs">

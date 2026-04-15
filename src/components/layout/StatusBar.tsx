@@ -7,9 +7,12 @@ export default function StatusBar() {
   const rootPath = useFileTreeStore((s) => s.rootPath)
   const tabs = useEditorStore((s) => s.tabs)
   const activeTabId = useEditorStore((s) => s.activeTabId)
+  const cursorPosition = useEditorStore((s) => s.cursorPosition)
+  const saveAllTabs = useEditorStore((s) => s.saveAllTabs)
   const gitStatus = useGitStore((s) => s.status)
 
   const activeTab = tabs.find((t) => t.id === activeTabId) ?? null
+  const dirtyCount = tabs.filter((t) => t.isDirty).length
   const currentBranch = gitStatus?.current ?? null
   const folderName = rootPath ? rootPath.split(/[\\/]/).pop() : null
 
@@ -31,10 +34,21 @@ export default function StatusBar() {
         {activeTab && (
           <span className="capitalize">{activeTab.language}</span>
         )}
+        {dirtyCount > 0 && (
+          <button
+            onClick={() => {
+              void saveAllTabs()
+            }}
+            className="px-1.5 py-0.5 rounded hover:bg-[var(--bg-hover)] text-[var(--accent)] transition-colors"
+            title="Save all files"
+          >
+            Save All ({dirtyCount})
+          </button>
+        )}
       </div>
 
       <div className="flex items-center gap-3">
-        <span>Ln 1, Col 1</span>
+        <span>Ln {cursorPosition.line}, Col {cursorPosition.column}</span>
         <span>UTF-8</span>
       </div>
     </div>

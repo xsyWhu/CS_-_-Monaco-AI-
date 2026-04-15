@@ -1,17 +1,27 @@
 import { create } from 'zustand'
 import type { ProviderSettings } from '@/types/agent.types'
 
-export type SidebarPanel = 'files' | 'search' | 'git'
+export type SidebarPanel = 'files' | 'search' | 'problems' | 'git'
+export type AutoSaveMode = 'off' | 'afterDelay' | 'onFocusChange'
+
+interface EditorPreferences {
+  autoSaveMode: AutoSaveMode
+  autoSaveDelay: number
+}
 
 interface SettingsState {
   provider: ProviderSettings | null
   workspacePath: string
+  autoSaveMode: AutoSaveMode
+  autoSaveDelay: number
   sidebarVisible: boolean
   chatVisible: boolean
   terminalVisible: boolean
   activeSidebarPanel: SidebarPanel
   loadSettings: () => Promise<void>
   updateProvider: (provider: ProviderSettings) => Promise<void>
+  setAutoSaveMode: (mode: AutoSaveMode) => void
+  setAutoSaveDelay: (delay: number) => void
   setWorkspacePath: (path: string) => void
   toggleSidebar: () => void
   toggleChatPanel: () => void
@@ -20,9 +30,37 @@ interface SettingsState {
   setSidebarPanel: (panel: SidebarPanel) => void
 }
 
+const EDITOR_PREFS_KEY = 'agent-ide.editor.preferences.v1'
+
+function loadEditorPreferences(): EditorPreferences {
+  try {
+    const raw = localStorage.getItem(EDITOR_PREFS_KEY)
+    if (!raw) return { autoSaveMode: 'off', autoSaveDelay: 1000 }
+    const parsed = JSON.parse(raw) as Partial<EditorPreferences>
+    return {
+      autoSaveMode: parsed.autoSaveMode ?? 'off',
+      autoSaveDelay:
+        typeof parsed.autoSaveDelay === 'number' && parsed.autoSaveDelay > 0
+          ? parsed.autoSaveDelay
+          : 1000,
+    }
+  } catch {
+    return { autoSaveMode: 'off', autoSaveDelay: 1000 }
+  }
+}
+
+function saveEditorPreferences(prefs: EditorPreferences): void {
+  try {
+    localStorage.setItem(EDITOR_PREFS_KEY, JSON.stringify(prefs))
+  } catch {
+    // Ignore localStorage errors
+  }
+}
+
 export const useSettingsStore = create<SettingsState>((set) => ({
   provider: null,
   workspacePath: '',
+  ...loadEditorPreferences(),
   sidebarVisible: true,
   chatVisible: true,
   terminalVisible: false,
@@ -47,6 +85,23 @@ export const useSettingsStore = create<SettingsState>((set) => ({
     } catch (error) {
       console.error('Failed to update provider:', error)
     }
+  },
+
+  setAutoSaveMode: (mode: AutoSaveMode) => {
+    set((state) => {
+      const next = { autoSaveMode: mode, autoSaveDelay: state.autoSaveDelay }
+      saveEditorPreferences(next)
+      return next
+    })
+  },
+
+  setAutoSaveDelay: (delay: number) => {
+    const normalized = Math.max(300, Math.min(10000, Math.floor(delay)))
+    set((state) => {
+      const next = { autoSaveMode: state.autoSaveMode, autoSaveDelay: normalized }
+      saveEditorPreferences(next)
+      return { autoSaveDelay: normalized }
+    })
   },
 
   setWorkspacePath: (path: string) => {

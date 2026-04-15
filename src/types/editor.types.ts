@@ -10,6 +10,23 @@ export interface EditorTab {
 
 export type FileTab = EditorTab
 
+export interface CursorPosition {
+  line: number
+  column: number
+}
+
+export interface EditorProblem {
+  filePath: string
+  line: number
+  column: number
+  endLine: number
+  endColumn: number
+  message: string
+  source?: string
+  code?: string
+  severity: number
+}
+
 export interface FileTreeNode {
   name: string
   path: string

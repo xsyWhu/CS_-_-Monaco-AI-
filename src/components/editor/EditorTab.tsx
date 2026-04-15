@@ -17,6 +17,12 @@ export default function EditorTab({ tab, isActive }: EditorTabProps) {
       role="tab"
       aria-selected={isActive}
       onClick={() => setActiveTab(tab.id)}
+      onMouseDown={(e) => {
+        if (e.button === 1) {
+          e.preventDefault()
+          void closeTab(tab.id)
+        }
+      }}
       className={cn(
         'group flex items-center gap-1.5 h-[34px] px-3 text-xs cursor-pointer border-r border-[var(--border)] shrink-0 transition-colors',
         isActive

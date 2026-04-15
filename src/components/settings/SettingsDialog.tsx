@@ -19,6 +19,10 @@ const defaultProvider: ProviderSettings = {
 export default function SettingsDialog({ isOpen, onClose }: Props) {
   const currentProvider = useSettingsStore((s) => s.provider)
   const updateProvider = useSettingsStore((s) => s.updateProvider)
+  const autoSaveMode = useSettingsStore((s) => s.autoSaveMode)
+  const autoSaveDelay = useSettingsStore((s) => s.autoSaveDelay)
+  const setAutoSaveMode = useSettingsStore((s) => s.setAutoSaveMode)
+  const setAutoSaveDelay = useSettingsStore((s) => s.setAutoSaveDelay)
 
   const [form, setForm] = useState<ProviderSettings>(defaultProvider)
   const [showApiKey, setShowApiKey] = useState(false)
@@ -126,6 +130,39 @@ export default function SettingsDialog({ isOpen, onClose }: Props) {
                 className="w-full bg-[var(--bg-tertiary)] border border-[var(--border)] rounded px-3 py-2 text-sm text-[var(--text-primary)] placeholder:text-[var(--text-muted)] outline-none focus:border-[var(--accent)] focus:ring-1 focus:ring-[var(--accent)] transition-colors"
               />
             </FormField>
+          </div>
+
+          <h3 className="text-xs font-semibold text-[var(--text-secondary)] uppercase tracking-wider pt-2">
+            Editor
+          </h3>
+          <div className="space-y-3">
+            <FormField label="Auto Save">
+              <select
+                value={autoSaveMode}
+                onChange={(e) =>
+                  setAutoSaveMode(e.target.value as 'off' | 'afterDelay' | 'onFocusChange')
+                }
+                className="w-full bg-[var(--bg-tertiary)] border border-[var(--border)] rounded px-3 py-2 text-sm text-[var(--text-primary)] outline-none focus:border-[var(--accent)] focus:ring-1 focus:ring-[var(--accent)] transition-colors"
+              >
+                <option value="off">Off</option>
+                <option value="afterDelay">After Delay</option>
+                <option value="onFocusChange">On Focus Change</option>
+              </select>
+            </FormField>
+
+            {autoSaveMode === 'afterDelay' && (
+              <FormField label="Auto Save Delay (ms)">
+                <input
+                  type="number"
+                  min={300}
+                  max={10000}
+                  step={100}
+                  value={autoSaveDelay}
+                  onChange={(e) => setAutoSaveDelay(Number(e.target.value))}
+                  className="w-full bg-[var(--bg-tertiary)] border border-[var(--border)] rounded px-3 py-2 text-sm text-[var(--text-primary)] outline-none focus:border-[var(--accent)] focus:ring-1 focus:ring-[var(--accent)] transition-colors"
+                />
+              </FormField>
+            )}
           </div>
         </div>
 
