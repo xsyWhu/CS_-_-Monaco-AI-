@@ -34,99 +34,28 @@
 
 ### 环境要求
 
-- Git >= 2.30
-- Node.js 20.x
-- npm 10.x
+- Node.js >= 18
+- npm >= 9
 
-说明：
-
-- 项目当前推荐使用 `Node 20`。
-- 虽然部分依赖在较低版本 Node 下可能可以安装，但实际开发中容易出现构建失败或依赖异常。
-- 不建议直接使用系统自带的旧版本 Node。
-
-### 1. 克隆项目
-
-```bash
-git clone <your-repo-url>
-cd CS_-_-Monaco-AI-
-```
-
-### 2. 安装 Node.js 20
-
-推荐使用 `nvm` 管理 Node 版本。
-
-#### Linux / macOS
-
-如果本机还没有 `nvm`，先安装：
-
-```bash
-curl -fsSL https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.7/install.sh | bash
-source ~/.bashrc
-```
-
-安装并切换到 Node 20：
-
-```bash
-nvm install 20
-nvm use 20
-nvm alias default 20
-```
-
-检查版本：
-
-```bash
-node -v
-npm -v
-```
-
-期望结果类似：
-
-```bash
-v20.x.x
-10.x.x
-```
-
-#### Windows
-
-Windows 建议使用以下任一方式：
-
-- 安装 `nvm-windows` 后切换到 Node 20
-- 或直接安装 Node.js 20 LTS
-
-安装完成后执行：
-
-```bash
-node -v
-npm -v
-```
-
-### 3. 安装项目依赖
-
-确保当前终端已经切换到 Node 20 后，再执行：
+### 安装依赖
 
 ```bash
 npm install
 ```
 
-### 4. 启动开发模式
+### 开发模式
 
 ```bash
 npm run dev
 ```
 
-启动成功后会打开 Electron 开发窗口。
-
-### 5. 构建项目
+### 构建生产版本
 
 ```bash
 npm run build
 ```
 
-如果 `build` 成功，说明当前环境已经可以正常开发和联调。
-
-### 6. 打包应用
-
-按操作系统选择对应命令：
+### 打包应用
 
 ```bash
 # Windows
@@ -138,108 +67,6 @@ npm run build:mac
 # Linux
 npm run build:linux
 ```
-
----
-
-## 推荐初始化流程
-
-组员首次拉取项目后，建议严格按下面顺序执行：
-
-```bash
-git clone <your-repo-url>
-cd CS_-_-Monaco-AI-
-nvm use 20
-npm install
-npm run build
-npm run dev
-```
-
-如果本机还没有安装 Node 20，请先执行 `nvm install 20`。
-
----
-
-## 环境检查清单
-
-在开始开发前，请先确认以下项目全部通过：
-
-- `node -v` 显示为 `v20.x.x`
-- `npm -v` 显示为 `10.x.x`
-- `npm install` 能成功完成
-- `npm run build` 能成功完成
-- `npm run dev` 能正常启动 Electron 窗口
-
-只要以上 5 项通过，说明本地开发环境基本正常。
-
----
-
-## 常见问题
-
-### 1. `electron-vite: not found`
-
-原因：
-
-- 没有执行 `npm install`
-- 依赖安装不完整
-- 安装依赖时使用了不兼容的 Node 版本
-
-解决方法：
-
-```bash
-nvm use 20
-rm -rf node_modules package-lock.json
-npm install
-```
-
-如果你们组内不想删除 `package-lock.json`，也可以先只删除 `node_modules` 后重新安装：
-
-```bash
-rm -rf node_modules
-npm install
-```
-
-### 2. Node 版本过低导致依赖报错
-
-现象：
-
-- `npm install` 出现 `Unsupported engine`
-- `npm run build` 失败
-- Tailwind、Vite、Electron 相关依赖异常
-
-解决方法：
-
-```bash
-nvm install 20
-nvm use 20
-node -v
-npm -v
-```
-
-确认版本正确后重新安装依赖。
-
-### 3. 新开终端后又回到旧版本 Node
-
-原因：
-
-- 当前 shell 没有加载 `nvm`
-- 没有切换到 Node 20
-
-解决方法：
-
-```bash
-source ~/.bashrc
-nvm use 20
-```
-
-### 4. 项目能安装依赖但无法启动
-
-建议按以下顺序排查：
-
-1. 先执行 `node -v` 和 `npm -v`，确认版本是否正确。
-2. 执行 `npm run build`，确认能否构建成功。
-3. 如果构建失败，先不要继续开发，先解决环境问题。
-4. 如果构建成功但 `npm run dev` 失败，再检查终端报错信息。
-
----
 
 ## 项目结构
 
@@ -309,11 +136,3 @@ AI Agent 具备以下工具调用能力：
 项目使用 electron-vite 构建，支持主进程和渲染进程的 HMR 热更新。
 
 开发时修改代码后会自动刷新，无需手动重启应用。
-
-多人协作开发前建议先执行：
-
-```bash
-npm run build
-```
-
-确认本地环境没问题后，再开始修改代码并提交到 GitHub。

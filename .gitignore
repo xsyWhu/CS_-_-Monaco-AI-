@@ -1,6 +1,47 @@
+# Dependencies
 node_modules/
+package-lock.json
+yarn.lock
+
+# Build outputs
 out/
 dist/
-*.log
+build/
+
+# IDE
+.vscode/
+.VSCodeCounter/
+*.swp
+*.swo
+*~
+
+# OS
 .DS_Store
 Thumbs.db
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Node
+.npm
+.node_repl_history
+
+# Test files (if any)
+*.test.js
+*.spec.js
+
+# IDE specific
+.idea/
+.vscode/settings.json
+
+# VS Code User settings (keep workspace recommendations)
+.vscode/launch.json
+.vscode/tasks.json
