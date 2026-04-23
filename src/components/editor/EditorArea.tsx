@@ -19,9 +19,21 @@ export default function EditorArea() {
   const setActiveTab = useEditorStore((s) => s.setActiveTab)
   const autoSaveMode = useSettingsStore((s) => s.autoSaveMode)
   const autoSaveDelay = useSettingsStore((s) => s.autoSaveDelay)
+  const formatOnSave = useSettingsStore((s) => s.formatOnSave)
   const tabPathsRef = useRef<string[]>([])
+  const formatDocumentRef = useRef<(() => Promise<void>) | null>(null)
 
   const activeTab = tabs.find((t) => t.id === activeTabId)
+
+  const saveActiveTab = async (): Promise<void> => {
+    if (!activeTabId) return
+
+    if (formatOnSave) {
+      await formatDocumentRef.current?.()
+    }
+
+    await saveTab(activeTabId)
+  }
 
   useEffect(() => {
     const handler = (event: KeyboardEvent) => {
@@ -36,7 +48,7 @@ export default function EditorArea() {
       if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 's') {
         event.preventDefault()
         if (activeTabId) {
-          void saveTab(activeTabId).catch((error) => {
+          void saveActiveTab().catch((error) => {
             console.error('Failed to save active tab:', error)
           })
         }
@@ -65,7 +77,7 @@ export default function EditorArea() {
 
     window.addEventListener('keydown', handler)
     return () => window.removeEventListener('keydown', handler)
-  }, [activeTabId, closeTab, setActiveTab, tabs, saveTab, saveAllTabs])
+  }, [activeTabId, closeTab, setActiveTab, tabs, saveActiveTab, saveAllTabs])
 
   useEffect(() => {
     const prevPaths = tabPathsRef.current
@@ -86,7 +98,7 @@ export default function EditorArea() {
     if (!activeTab || !activeTab.isDirty) return
 
     const timer = setTimeout(() => {
-      void saveTab(activeTab.id).catch((error) => {
+      void saveActiveTab().catch((error) => {
         console.error('Failed to auto-save active tab:', error)
       })
     }, autoSaveDelay)
@@ -94,7 +106,7 @@ export default function EditorArea() {
     return () => {
       clearTimeout(timer)
     }
-  }, [autoSaveMode, autoSaveDelay, activeTab, saveTab])
+  }, [autoSaveMode, autoSaveDelay, activeTab, saveActiveTab])
 
   if (tabs.length === 0) {
     return (
@@ -144,7 +156,7 @@ export default function EditorArea() {
               }
             }}
             onSave={() => {
-              void saveTab(activeTab.id).catch((error) => {
+              void saveActiveTab().catch((error) => {
                 console.error('Failed to save active tab:', error)
               })
             }}
@@ -155,7 +167,7 @@ export default function EditorArea() {
             }}
             onBlur={() => {
               if (autoSaveMode === 'onFocusChange' && activeTab?.isDirty) {
-                void saveTab(activeTab.id).catch((error) => {
+                void saveActiveTab().catch((error) => {
                   console.error('Failed to auto-save on focus change:', error)
                 })
               }
@@ -165,6 +177,9 @@ export default function EditorArea() {
             }}
             onProblemsChange={(problems) => {
               setProblems(problems)
+            }}
+            onFormatDocumentReady={(formatDocument) => {
+              formatDocumentRef.current = formatDocument
             }}
           />
         )}

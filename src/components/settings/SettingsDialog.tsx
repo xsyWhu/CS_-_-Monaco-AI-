@@ -21,8 +21,10 @@ export default function SettingsDialog({ isOpen, onClose }: Props) {
   const updateProvider = useSettingsStore((s) => s.updateProvider)
   const autoSaveMode = useSettingsStore((s) => s.autoSaveMode)
   const autoSaveDelay = useSettingsStore((s) => s.autoSaveDelay)
+  const formatOnSave = useSettingsStore((s) => s.formatOnSave)
   const setAutoSaveMode = useSettingsStore((s) => s.setAutoSaveMode)
   const setAutoSaveDelay = useSettingsStore((s) => s.setAutoSaveDelay)
+  const setFormatOnSave = useSettingsStore((s) => s.setFormatOnSave)
 
   const [form, setForm] = useState<ProviderSettings>(defaultProvider)
   const [showApiKey, setShowApiKey] = useState(false)
@@ -163,6 +165,18 @@ export default function SettingsDialog({ isOpen, onClose }: Props) {
                 />
               </FormField>
             )}
+
+            <FormField label="Format on Save">
+              <label className="flex items-center gap-2 text-sm text-[var(--text-primary)]">
+                <input
+                  type="checkbox"
+                  checked={formatOnSave}
+                  onChange={(e) => setFormatOnSave(e.target.checked)}
+                  className="h-4 w-4 rounded border-[var(--border)] bg-[var(--bg-tertiary)] accent-[var(--accent)]"
+                />
+                <span>Automatically format the current file before saving</span>
+              </label>
+            </FormField>
           </div>
         </div>
 

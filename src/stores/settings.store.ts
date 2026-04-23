@@ -7,6 +7,7 @@ export type AutoSaveMode = 'off' | 'afterDelay' | 'onFocusChange'
 interface EditorPreferences {
   autoSaveMode: AutoSaveMode
   autoSaveDelay: number
+  formatOnSave: boolean
 }
 
 interface SettingsState {
@@ -14,6 +15,7 @@ interface SettingsState {
   workspacePath: string
   autoSaveMode: AutoSaveMode
   autoSaveDelay: number
+  formatOnSave: boolean
   sidebarVisible: boolean
   chatVisible: boolean
   terminalVisible: boolean
@@ -22,6 +24,7 @@ interface SettingsState {
   updateProvider: (provider: ProviderSettings) => Promise<void>
   setAutoSaveMode: (mode: AutoSaveMode) => void
   setAutoSaveDelay: (delay: number) => void
+  setFormatOnSave: (enabled: boolean) => void
   setWorkspacePath: (path: string) => void
   toggleSidebar: () => void
   toggleChatPanel: () => void
@@ -35,7 +38,7 @@ const EDITOR_PREFS_KEY = 'agent-ide.editor.preferences.v1'
 function loadEditorPreferences(): EditorPreferences {
   try {
     const raw = localStorage.getItem(EDITOR_PREFS_KEY)
-    if (!raw) return { autoSaveMode: 'off', autoSaveDelay: 1000 }
+    if (!raw) return { autoSaveMode: 'off', autoSaveDelay: 1000, formatOnSave: false }
     const parsed = JSON.parse(raw) as Partial<EditorPreferences>
     return {
       autoSaveMode: parsed.autoSaveMode ?? 'off',
@@ -43,9 +46,10 @@ function loadEditorPreferences(): EditorPreferences {
         typeof parsed.autoSaveDelay === 'number' && parsed.autoSaveDelay > 0
           ? parsed.autoSaveDelay
           : 1000,
+      formatOnSave: parsed.formatOnSave ?? false,
     }
   } catch {
-    return { autoSaveMode: 'off', autoSaveDelay: 1000 }
+    return { autoSaveMode: 'off', autoSaveDelay: 1000, formatOnSave: false }
   }
 }
 
@@ -98,9 +102,25 @@ export const useSettingsStore = create<SettingsState>((set) => ({
   setAutoSaveDelay: (delay: number) => {
     const normalized = Math.max(300, Math.min(10000, Math.floor(delay)))
     set((state) => {
-      const next = { autoSaveMode: state.autoSaveMode, autoSaveDelay: normalized }
+      const next = {
+        autoSaveMode: state.autoSaveMode,
+        autoSaveDelay: normalized,
+        formatOnSave: state.formatOnSave,
+      }
       saveEditorPreferences(next)
       return { autoSaveDelay: normalized }
+    })
+  },
+
+  setFormatOnSave: (enabled: boolean) => {
+    set((state) => {
+      const next = {
+        autoSaveMode: state.autoSaveMode,
+        autoSaveDelay: state.autoSaveDelay,
+        formatOnSave: enabled,
+      }
+      saveEditorPreferences(next)
+      return { formatOnSave: enabled }
     })
   },
 

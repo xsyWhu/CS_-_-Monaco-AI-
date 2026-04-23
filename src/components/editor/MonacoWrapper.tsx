@@ -16,6 +16,7 @@ interface MonacoWrapperProps {
   onChange: (value: string | undefined) => void
   onSave?: () => void
   onSaveAll?: () => void
+  onFormatDocumentReady?: (formatDocument: () => Promise<void>) => void
   onBlur?: () => void
   onCursorChange?: (position: CursorPosition) => void
   onProblemsChange?: (problems: EditorProblem[]) => void
@@ -85,6 +86,7 @@ export default function MonacoWrapper({
   onChange,
   onSave,
   onSaveAll,
+  onFormatDocumentReady,
   onBlur,
   onCursorChange,
   onProblemsChange,
@@ -130,6 +132,17 @@ export default function MonacoWrapper({
         onSaveAll()
       })
     }
+
+    const formatDocument = async (): Promise<void> => {
+      const action = editor.getAction('editor.action.formatDocument')
+      if (!action) return
+      await action.run()
+    }
+
+    onFormatDocumentReady?.(formatDocument)
+    editor.addCommand(monaco.KeyMod.Shift | monaco.KeyMod.Alt | monaco.KeyCode.KeyF, () => {
+      void formatDocument()
+    })
 
     editor.onDidChangeCursorPosition((event) => {
       onCursorChange?.({
