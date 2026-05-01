@@ -49,6 +49,8 @@ function highlightText(text: string, query: string) {
 export default function SearchResultItem({ result, type, query }: Props) {
   const openFile = useEditorStore((s) => s.openFile)
   const openFileAtPosition = useEditorStore((s) => s.openFileAtPosition)
+  const confirmAndHandleDirtyTabs = useEditorStore((s) => s.confirmAndHandleDirtyTabs)
+  const pruneTabsByWorkspace = useEditorStore((s) => s.pruneTabsByWorkspace)
   const rootPath = useFileTreeStore((s) => s.rootPath)
   const setRootPath = useFileTreeStore((s) => s.setRootPath)
   const setSelectedPath = useFileTreeStore((s) => s.setSelectedPath)
@@ -63,7 +65,10 @@ export default function SearchResultItem({ result, type, query }: Props) {
       parentParts.pop()
       const parentPath = parentParts.join(sep)
       if (parentPath) {
+        const confirmed = await confirmAndHandleDirtyTabs()
+        if (!confirmed) return
         await setRootPath(parentPath)
+        pruneTabsByWorkspace(parentPath)
       }
     }
 
@@ -118,6 +123,12 @@ export default function SearchResultItem({ result, type, query }: Props) {
     <button
       onClick={() => {
         void handleClick()
+      }}
+      draggable={type === 'fileName' || type === 'content'}
+      onDragStart={(e) => {
+        const filePath = type === 'content' ? (result as SearchResult).filePath : (result as FileNameResult).filePath
+        e.dataTransfer.setData('text/plain', filePath)
+        e.dataTransfer.effectAllowed = 'copyMove'
       }}
       className="w-full text-left px-3 py-1.5 hover:bg-[var(--bg-hover)] transition-colors border-b border-[var(--border)]/30"
     >

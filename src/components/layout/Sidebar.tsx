@@ -1,8 +1,9 @@
 import { useState } from 'react'
-import { FolderOpen, Search, CircleAlert, GitBranch, Settings } from 'lucide-react'
+import { FolderOpen, Search, CircleAlert, GitBranch, Settings, ListTree } from 'lucide-react'
 import { useSettingsStore, type SidebarPanel } from '@/stores/settings.store'
 import { cn } from '@/lib/utils'
 import FileExplorer from '@/components/file-explorer/FileExplorer'
+import OutlinePanel from '@/components/editor/OutlinePanel'
 import SearchPanel from '@/components/search/SearchPanel'
 import ProblemsPanel from '@/components/search/ProblemsPanel'
 import GitPanel from '@/components/git/GitPanel'
@@ -10,6 +11,7 @@ import SettingsDialog from '@/components/settings/SettingsDialog'
 
 const activityItems: { id: SidebarPanel; icon: typeof FolderOpen; label: string }[] = [
   { id: 'files', icon: FolderOpen, label: 'Explorer' },
+  { id: 'outline', icon: ListTree, label: 'Outline' },
   { id: 'search', icon: Search, label: 'Search' },
   { id: 'problems', icon: CircleAlert, label: 'Problems' },
   { id: 'git', icon: GitBranch, label: 'Source Control' },
@@ -47,6 +49,7 @@ function ActivityBarButton({
 
 const panelComponents: Record<SidebarPanel, React.FC> = {
   files: FileExplorer,
+  outline: OutlinePanel,
   search: SearchPanel,
   problems: ProblemsPanel,
   git: GitPanel,

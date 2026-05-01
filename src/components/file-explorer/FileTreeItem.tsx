@@ -95,6 +95,12 @@ export default function FileTreeItem({ entry, depth }: { entry: FileTreeNode; de
           isSelected && 'bg-[var(--bg-tertiary)]'
         )}
         style={{ paddingLeft: depth * 16 + 8 }}
+        draggable={!entry.isDirectory}
+        onDragStart={(e) => {
+          if (entry.isDirectory) return
+          e.dataTransfer.setData('text/plain', entry.path)
+          e.dataTransfer.effectAllowed = 'copyMove'
+        }}
         onClick={() => { 
           setSelectedPath(entry.path)
           if (entry.isDirectory) { 

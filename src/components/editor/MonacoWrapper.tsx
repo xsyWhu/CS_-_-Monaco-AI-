@@ -144,6 +144,39 @@ export default function MonacoWrapper({
       void formatDocument()
     })
 
+    const runAction = async (actionId: string): Promise<void> => {
+      const action = editor.getAction(actionId)
+      if (!action) return
+      await action.run()
+    }
+
+    editor.addAction({
+      id: 'agentide.goToDefinition',
+      label: 'Go to Definition',
+      keybindings: [monaco.KeyCode.F12],
+      contextMenuGroupId: 'navigation',
+      contextMenuOrder: 1,
+      run: () => runAction('editor.action.revealDefinition'),
+    })
+
+    editor.addAction({
+      id: 'agentide.findReferences',
+      label: 'Find References',
+      keybindings: [monaco.KeyMod.Shift | monaco.KeyCode.F12],
+      contextMenuGroupId: 'navigation',
+      contextMenuOrder: 2,
+      run: () => runAction('editor.action.referenceSearch.trigger'),
+    })
+
+    editor.addAction({
+      id: 'agentide.renameSymbol',
+      label: 'Rename Symbol',
+      keybindings: [monaco.KeyCode.F2],
+      contextMenuGroupId: 'navigation',
+      contextMenuOrder: 3,
+      run: () => runAction('editor.action.rename'),
+    })
+
     editor.onDidChangeCursorPosition((event) => {
       onCursorChange?.({
         line: event.position.lineNumber,
@@ -257,6 +290,9 @@ export default function MonacoWrapper({
         guides: { bracketPairs: true, indentation: true },
         formatOnPaste: true,
         formatOnType: true,
+        codeLens: true,
+        folding: true,
+        overviewRulerLanes: 2,
         linkedEditing: true,
       }}
     />

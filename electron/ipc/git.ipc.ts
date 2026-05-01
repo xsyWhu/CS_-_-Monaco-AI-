@@ -16,6 +16,13 @@ export function registerGitIPC(): void {
   )
 
   ipcMain.handle(
+    'git:fileAtHead',
+    (_event: IpcMainInvokeEvent, repoPath: string, filePath: string) => {
+      return gitService.fileAtHead(repoPath, filePath)
+    },
+  )
+
+  ipcMain.handle(
     'git:add',
     (_event: IpcMainInvokeEvent, repoPath: string, files: string[]) => {
       return gitService.add(repoPath, files)

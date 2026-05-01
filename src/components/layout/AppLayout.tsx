@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react'
 import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels'
 import { useSettingsStore } from '@/stores/settings.store'
 import Sidebar from './Sidebar'
@@ -5,6 +6,7 @@ import StatusBar from './StatusBar'
 import EditorArea from '@/components/editor/EditorArea'
 import TerminalPanel from '@/components/terminal/TerminalPanel'
 import ChatPanel from '@/components/chat/ChatPanel'
+import CommandPalette from '@/components/editor/CommandPalette'
 
 function ResizeHandle({ direction = 'horizontal' }: { direction?: 'horizontal' | 'vertical' }) {
   const isHorizontal = direction === 'horizontal'
@@ -20,8 +22,53 @@ function ResizeHandle({ direction = 'horizontal' }: { direction?: 'horizontal' |
 
 export default function AppLayout() {
   const sidebarVisible = useSettingsStore((s) => s.sidebarVisible)
+  const setSidebarPanel = useSettingsStore((s) => s.setSidebarPanel)
+  const toggleSidebar = useSettingsStore((s) => s.toggleSidebar)
   const chatVisible = useSettingsStore((s) => s.chatVisible)
   const terminalVisible = useSettingsStore((s) => s.terminalVisible)
+  const [paletteMode, setPaletteMode] = useState<'quickOpen' | 'gotoLine'>('quickOpen')
+  const [paletteOpen, setPaletteOpen] = useState(false)
+
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      const target = event.target as HTMLElement | null
+      const isTypingTarget =
+        target &&
+        (target.tagName === 'INPUT' ||
+          target.tagName === 'TEXTAREA' ||
+          target.isContentEditable)
+
+      if ((event.ctrlKey || event.metaKey) && !event.shiftKey && event.key.toLowerCase() === 'p') {
+        event.preventDefault()
+        setPaletteMode('quickOpen')
+        setPaletteOpen(true)
+        return
+      }
+
+      if ((event.ctrlKey || event.metaKey) && !event.shiftKey && event.key.toLowerCase() === 'g') {
+        event.preventDefault()
+        setPaletteMode('gotoLine')
+        setPaletteOpen(true)
+        return
+      }
+
+      if ((event.ctrlKey || event.metaKey) && event.shiftKey && event.key.toLowerCase() === 'o') {
+        event.preventDefault()
+        if (!sidebarVisible) {
+          toggleSidebar()
+        }
+        setSidebarPanel('outline')
+        return
+      }
+
+      if (isTypingTarget && paletteOpen) {
+        return
+      }
+    }
+
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [paletteOpen, setSidebarPanel, sidebarVisible, toggleSidebar])
 
   return (
     <div className="h-full flex flex-col overflow-hidden">
@@ -97,6 +144,12 @@ export default function AppLayout() {
           )}
         </PanelGroup>
       </div>
+
+      <CommandPalette
+        isOpen={paletteOpen}
+        mode={paletteMode}
+        onClose={() => setPaletteOpen(false)}
+      />
 
       {/* Status bar */}
       <StatusBar />

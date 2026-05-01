@@ -1,4 +1,4 @@
-import { useCallback } from 'react'
+import { useCallback, useMemo } from 'react'
 import { Search, CaseSensitive, Regex, File, Filter, Loader2 } from 'lucide-react'
 import { useSearchStore } from '@/stores/search.store'
 import { useFileTreeStore } from '@/stores/file-tree.store'
@@ -29,6 +29,18 @@ export default function SearchPanel() {
 
   const displayResults = searchType === 'content' ? results : fileResults
   const resultCount = displayResults.length
+  const groupedContentResults = useMemo(() => {
+    if (searchType !== 'content') return []
+
+    const groups = new Map<string, typeof results>()
+    for (const result of results) {
+      const list = groups.get(result.filePath) ?? []
+      list.push(result)
+      groups.set(result.filePath, list)
+    }
+
+    return Array.from(groups.entries()).map(([filePath, items]) => ({ filePath, items }))
+  }, [results, searchType])
 
   return (
     <div className="h-full flex flex-col bg-[var(--bg-secondary)]">
@@ -116,14 +128,35 @@ export default function SearchPanel() {
             </div>
             <div>
               {searchType === 'content'
-                ? results.map((r, i) => (
-                    <SearchResultItem
-                      key={`${r.filePath}:${r.line}:${i}`}
-                      result={r}
-                      type="content"
-                      query={query}
-                    />
-                  ))
+                ? groupedContentResults.map((group) => {
+                    const parts = group.filePath.replace(/\\/g, '/').split('/')
+                    const fileName = parts.pop() || group.filePath
+                    const dir = parts.slice(-2).join('/')
+
+                    return (
+                      <div key={group.filePath} className="border-b border-[var(--border)]/30">
+                        <div className="px-3 pt-2 pb-1 text-[11px] uppercase tracking-wide text-[var(--text-muted)] flex items-center justify-between">
+                          <span className="truncate">{fileName}</span>
+                          <span>{group.items.length} matches</span>
+                        </div>
+                        <div className="px-3 pb-2">
+                          {dir && (
+                            <div className="text-[10px] text-[var(--text-muted)] truncate mb-1">
+                              {dir}
+                            </div>
+                          )}
+                          {group.items.map((r, i) => (
+                            <SearchResultItem
+                              key={`${r.filePath}:${r.line}:${i}`}
+                              result={r}
+                              type="content"
+                              query={query}
+                            />
+                          ))}
+                        </div>
+                      </div>
+                    )
+                  })
                 : fileResults.map((r, i) => (
                     <SearchResultItem
                       key={`${r.filePath}:${i}`}

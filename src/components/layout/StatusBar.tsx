@@ -9,6 +9,8 @@ export default function StatusBar() {
   const activeTabId = useEditorStore((s) => s.activeTabId)
   const cursorPosition = useEditorStore((s) => s.cursorPosition)
   const saveAllTabs = useEditorStore((s) => s.saveAllTabs)
+  const splitEnabled = useEditorStore((s) => s.splitEnabled)
+  const toggleSplitView = useEditorStore((s) => s.toggleSplitView)
   const gitStatus = useGitStore((s) => s.status)
 
   const activeTab = tabs.find((t) => t.id === activeTabId) ?? null
@@ -41,10 +43,17 @@ export default function StatusBar() {
             }}
             className="px-1.5 py-0.5 rounded hover:bg-[var(--bg-hover)] text-[var(--accent)] transition-colors"
             title="Save all files"
-          >
-            Save All ({dirtyCount})
-          </button>
+            >
+              Save All ({dirtyCount})
+            </button>
         )}
+        <button
+          onClick={toggleSplitView}
+          className="px-1.5 py-0.5 rounded hover:bg-[var(--bg-hover)] text-[var(--accent)] transition-colors"
+          title={splitEnabled ? 'Disable split view' : 'Enable split view'}
+        >
+          {splitEnabled ? 'Single Pane' : 'Split View'}
+        </button>
       </div>
 
       <div className="flex items-center gap-3">

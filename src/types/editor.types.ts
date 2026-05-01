@@ -6,6 +6,7 @@ export interface EditorTab {
   content: string
   isDirty: boolean
   isActive: boolean
+  isPinned?: boolean
 }
 
 export type FileTab = EditorTab
@@ -25,6 +26,16 @@ export interface EditorProblem {
   source?: string
   code?: string
   severity: number
+}
+
+export interface OutlineItem {
+  id: string
+  name: string
+  kind: string
+  line: number
+  column: number
+  depth: number
+  children?: OutlineItem[]
 }
 
 export interface FileTreeNode {

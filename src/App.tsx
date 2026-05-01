@@ -1,7 +1,7 @@
 import { Component, type ErrorInfo, type ReactNode, useEffect } from 'react'
 import AppLayout from './components/layout/AppLayout'
 import { useSettingsStore } from '@/stores/settings.store'
-import { useFileTreeStore } from '@/stores/file-tree.store'
+import { getSavedWorkspacePath, useFileTreeStore } from '@/stores/file-tree.store'
 import { useEditorStore } from '@/stores/editor.store'
 
 class ErrorBoundary extends Component<
@@ -37,10 +37,27 @@ class ErrorBoundary extends Component<
 export default function App() {
   const loadSettings = useSettingsStore((s) => s.loadSettings)
   const rootPath = useFileTreeStore((s) => s.rootPath)
+  const restoreSessionForWorkspace = useEditorStore((s) => s.restoreSessionForWorkspace)
 
   useEffect(() => {
     loadSettings()
   }, [loadSettings])
+
+  useEffect(() => {
+    if (rootPath) return
+
+    const savedWorkspace = getSavedWorkspacePath()
+    if (savedWorkspace) {
+      void useFileTreeStore.getState().setRootPath(savedWorkspace).catch((error) => {
+        console.error('Failed to restore workspace:', error)
+      })
+    }
+  }, [rootPath])
+
+  useEffect(() => {
+    if (!rootPath) return
+    void restoreSessionForWorkspace(rootPath)
+  }, [rootPath, restoreSessionForWorkspace])
 
   useEffect(() => {
     if (!rootPath) return

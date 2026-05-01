@@ -8,27 +8,34 @@ import {
   ChevronDown,
   FolderOpen,
   AlertCircle,
+  ExternalLink,
 } from 'lucide-react'
 import { useGitStore } from '@/stores/git.store'
 import { useFileTreeStore } from '@/stores/file-tree.store'
-import DiffViewer from './DiffViewer'
+import { useEditorStore } from '@/stores/editor.store'
+import GitDiffEditor from './GitDiffEditor'
+
+function joinPath(base: string, relative: string): string {
+  const sep = base.includes('\\') ? '\\' : '/'
+  return `${base.replace(/[\\/]+$/, '')}${sep}${relative.replace(/^[\\/]+/, '')}`
+}
 
 export default function GitPanel() {
   const rootPath = useFileTreeStore((s) => s.rootPath)
   const status = useGitStore((s) => s.status)
   const branches = useGitStore((s) => s.branches)
-  const diff = useGitStore((s) => s.diff)
   const loading = useGitStore((s) => s.loading)
   const refreshStatus = useGitStore((s) => s.refreshStatus)
   const refreshBranches = useGitStore((s) => s.refreshBranches)
   const stageFiles = useGitStore((s) => s.stageFiles)
   const commitFn = useGitStore((s) => s.commit)
   const checkoutFn = useGitStore((s) => s.checkout)
-  const getDiff = useGitStore((s) => s.getDiff)
+  const openFile = useEditorStore((s) => s.openFile)
+  const openFileAtPosition = useEditorStore((s) => s.openFileAtPosition)
 
   const [commitMessage, setCommitMessage] = useState('')
   const [showBranches, setShowBranches] = useState(false)
-  const [showDiff, setShowDiff] = useState(false)
+  const [selectedDiffFile, setSelectedDiffFile] = useState<string | null>(null)
 
   const refresh = useCallback(async () => {
     if (!rootPath) return
@@ -41,12 +48,12 @@ export default function GitPanel() {
 
   const stagedFiles = useMemo(
     () => (status?.files ?? []).filter((f) => f.index !== ' ' && f.index !== '?'),
-    [status]
+    [status],
   )
 
   const changedFiles = useMemo(
     () => (status?.files ?? []).filter((f) => f.working_dir !== ' ' || f.index === '?'),
-    [status]
+    [status],
   )
 
   const handleStage = async (files: string[]) => {
@@ -69,10 +76,14 @@ export default function GitPanel() {
     await refresh()
   }
 
-  const handleViewDiff = async (filePath?: string) => {
+  const handleOpenFile = async (relativePath: string) => {
     if (!rootPath) return
-    await getDiff(rootPath, filePath)
-    setShowDiff(true)
+    const filePath = joinPath(rootPath, relativePath)
+    await openFile(filePath)
+  }
+
+  const handleViewDiff = async (filePath?: string) => {
+    setSelectedDiffFile(filePath ?? null)
   }
 
   if (!rootPath) {
@@ -100,7 +111,6 @@ export default function GitPanel() {
 
   return (
     <div className="h-full flex flex-col bg-[var(--bg-secondary)]">
-      {/* Header: branch + refresh */}
       <div className="flex items-center justify-between px-3 h-10 min-h-10 border-b border-[var(--border)]">
         <div className="relative flex items-center gap-2">
           <GitBranch size={14} className="text-[var(--accent)]" />
@@ -143,9 +153,7 @@ export default function GitPanel() {
         </button>
       </div>
 
-      {/* File lists */}
       <div className="flex-1 overflow-y-auto">
-        {/* Staged changes */}
         <section>
           <div className="flex items-center justify-between px-3 py-1.5 text-[10px] font-semibold text-[var(--text-secondary)] uppercase tracking-wider bg-[var(--bg-secondary)] sticky top-0 z-10">
             <span>Staged Changes ({stagedFiles.length})</span>
@@ -167,9 +175,16 @@ export default function GitPanel() {
                   {f.path}
                 </span>
                 <button
+                  onClick={() => void handleOpenFile(f.path)}
+                  className="opacity-0 group-hover:opacity-100 p-0.5 rounded hover:bg-[var(--bg-tertiary)] text-[var(--text-muted)]"
+                  title="Open in editor"
+                >
+                  <ExternalLink size={12} />
+                </button>
+                <button
                   onClick={() => handleViewDiff(f.path)}
                   className="opacity-0 group-hover:opacity-100 p-0.5 rounded hover:bg-[var(--bg-tertiary)] text-[var(--text-muted)]"
-                  title="Unstage (view diff)"
+                  title="View diff"
                 >
                   <Minus size={12} />
                 </button>
@@ -178,13 +193,12 @@ export default function GitPanel() {
           )}
         </section>
 
-        {/* Unstaged changes */}
         <section>
           <div className="flex items-center justify-between px-3 py-1.5 text-[10px] font-semibold text-[var(--text-secondary)] uppercase tracking-wider bg-[var(--bg-secondary)] sticky top-0 z-10">
             <span>Changes ({changedFiles.length})</span>
             {changedFiles.length > 0 && (
               <button
-                onClick={() => handleStage(changedFiles.map((f) => f.path))}
+                onClick={() => void handleStage(changedFiles.map((f) => f.path))}
                 className="text-[var(--accent)] hover:text-[var(--accent-hover)] transition-colors"
                 title="Stage all"
               >
@@ -209,7 +223,14 @@ export default function GitPanel() {
                   {f.path}
                 </span>
                 <button
-                  onClick={() => handleStage([f.path])}
+                  onClick={() => void handleOpenFile(f.path)}
+                  className="opacity-0 group-hover:opacity-100 p-0.5 rounded hover:bg-[var(--bg-tertiary)] text-[var(--text-muted)]"
+                  title="Open in editor"
+                >
+                  <ExternalLink size={12} />
+                </button>
+                <button
+                  onClick={() => void handleStage([f.path])}
                   className="opacity-0 group-hover:opacity-100 p-0.5 rounded hover:bg-[var(--bg-tertiary)] text-[var(--text-muted)]"
                   title="Stage"
                 >
@@ -220,24 +241,22 @@ export default function GitPanel() {
           )}
         </section>
 
-        {/* Diff viewer */}
-        {showDiff && diff && (
+        {selectedDiffFile && (
           <section className="border-t border-[var(--border)]">
             <div className="flex items-center justify-between px-3 py-1.5 text-[10px] font-semibold text-[var(--text-secondary)] uppercase tracking-wider">
-              <span>Diff</span>
+              <span>Diff: {selectedDiffFile}</span>
               <button
-                onClick={() => setShowDiff(false)}
+                onClick={() => setSelectedDiffFile(null)}
                 className="text-[var(--text-muted)] hover:text-[var(--text-primary)] text-sm leading-none"
               >
                 ×
               </button>
             </div>
-            <DiffViewer diff={diff} />
+            <GitDiffEditor repoPath={rootPath} filePath={selectedDiffFile} />
           </section>
         )}
       </div>
 
-      {/* Commit area */}
       <div className="p-3 border-t border-[var(--border)] space-y-2">
         <input
           value={commitMessage}
@@ -245,7 +264,7 @@ export default function GitPanel() {
           placeholder="Commit message"
           className="w-full bg-[var(--bg-tertiary)] border border-[var(--border)] rounded px-3 py-1.5 text-sm text-[var(--text-primary)] placeholder:text-[var(--text-muted)] outline-none focus:border-[var(--accent)] transition-colors"
           onKeyDown={(e) => {
-            if (e.key === 'Enter' && commitMessage.trim()) handleCommit()
+            if (e.key === 'Enter' && commitMessage.trim()) void handleCommit()
           }}
         />
         <button

@@ -1,15 +1,59 @@
 import { create } from 'zustand'
 import type { FileTreeNode } from '../types/editor.types'
 
+const WORKSPACE_KEY = 'agent-ide.workspace.path.v1'
+const RECENT_WORKSPACES_KEY = 'agent-ide.recent.workspaces.v1'
+
+function loadRecentWorkspaces(): string[] {
+  try {
+    const raw = localStorage.getItem(RECENT_WORKSPACES_KEY)
+    if (!raw) return []
+    const parsed = JSON.parse(raw) as unknown
+    return Array.isArray(parsed) ? parsed.filter((item) => typeof item === 'string') : []
+  } catch {
+    return []
+  }
+}
+
+function saveRecentWorkspaces(workspaces: string[]): void {
+  try {
+    localStorage.setItem(RECENT_WORKSPACES_KEY, JSON.stringify(workspaces.slice(0, 10)))
+  } catch {
+    // Ignore storage errors
+  }
+}
+
+export function getSavedWorkspacePath(): string | null {
+  try {
+    return localStorage.getItem(WORKSPACE_KEY)
+  } catch {
+    return null
+  }
+}
+
+function saveWorkspacePath(path: string | null): void {
+  try {
+    if (path) {
+      localStorage.setItem(WORKSPACE_KEY, path)
+    } else {
+      localStorage.removeItem(WORKSPACE_KEY)
+    }
+  } catch {
+    // Ignore storage errors
+  }
+}
+
 interface FileTreeState {
   rootPath: string | null
   entries: FileTreeNode[]
   expandedDirs: Set<string>
   selectedPath: string | null
+  recentWorkspaces: string[]
 
   openFolder: () => Promise<void>
   selectFile: () => Promise<string | null>
   setRootPath: (path: string) => Promise<void>
+  addRecentWorkspace: (path: string) => void
   loadChildren: (dirPath: string) => Promise<void>
   toggleDirectory: (path: string) => void
   setSelectedPath: (path: string | null) => void
@@ -62,6 +106,7 @@ export const useFileTreeStore = create<FileTreeState>((set, get) => ({
   entries: [],
   expandedDirs: new Set<string>(),
   selectedPath: null,
+  recentWorkspaces: loadRecentWorkspaces(),
 
   openFolder: async () => {
     const selected = await window.api.selectDirectory()
@@ -74,7 +119,16 @@ export const useFileTreeStore = create<FileTreeState>((set, get) => ({
 
   setRootPath: async (path) => {
     const entries = await fetchDirectoryEntries(path)
-    set({ rootPath: path, entries, expandedDirs: new Set(), selectedPath: null })
+    saveWorkspacePath(path)
+    const recentWorkspaces = [path, ...get().recentWorkspaces.filter((item) => item !== path)].slice(0, 10)
+    saveRecentWorkspaces(recentWorkspaces)
+    set({ rootPath: path, entries, expandedDirs: new Set(), selectedPath: null, recentWorkspaces })
+  },
+
+  addRecentWorkspace: (path) => {
+    const recentWorkspaces = [path, ...get().recentWorkspaces.filter((item) => item !== path)].slice(0, 10)
+    saveRecentWorkspaces(recentWorkspaces)
+    set({ recentWorkspaces })
   },
 
   loadChildren: async (dirPath) => {

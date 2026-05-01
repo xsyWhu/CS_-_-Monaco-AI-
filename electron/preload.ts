@@ -28,6 +28,7 @@ export interface ElectronAPI {
   // Git
   gitStatus(repoPath: string): Promise<unknown>
   gitDiff(repoPath: string, filePath?: string): Promise<string>
+  gitFileAtHead(repoPath: string, filePath: string): Promise<string>
   gitAdd(repoPath: string, files: string[]): Promise<void>
   gitCommit(repoPath: string, message: string): Promise<string>
   gitBranches(repoPath: string): Promise<unknown[]>
@@ -91,6 +92,7 @@ const api: ElectronAPI = {
   // Git
   gitStatus: (repoPath) => ipcRenderer.invoke('git:status', repoPath),
   gitDiff: (repoPath, filePath?) => ipcRenderer.invoke('git:diff', repoPath, filePath),
+  gitFileAtHead: (repoPath, filePath) => ipcRenderer.invoke('git:fileAtHead', repoPath, filePath),
   gitAdd: (repoPath, files) => ipcRenderer.invoke('git:add', repoPath, files),
   gitCommit: (repoPath, message) => ipcRenderer.invoke('git:commit', repoPath, message),
   gitBranches: (repoPath) => ipcRenderer.invoke('git:branches', repoPath),

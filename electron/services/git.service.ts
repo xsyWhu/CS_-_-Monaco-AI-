@@ -79,6 +79,15 @@ export default class GitService {
     }
   }
 
+  async fileAtHead(repoPath: string, filePath: string): Promise<string> {
+    try {
+      const git = this.getGit(repoPath)
+      return await git.raw(['show', `HEAD:${filePath}`])
+    } catch (error) {
+      throw new Error(`Failed to read file "${filePath}" at HEAD: ${(error as Error).message}`)
+    }
+  }
+
   async add(repoPath: string, files: string[]): Promise<void> {
     try {
       const git = this.getGit(repoPath)

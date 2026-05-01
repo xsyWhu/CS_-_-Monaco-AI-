@@ -93,6 +93,7 @@ export interface ElectronAPI {
   // Git
   gitStatus(repoPath: string): Promise<GitStatus>
   gitDiff(repoPath: string, filePath?: string): Promise<string>
+  gitFileAtHead(repoPath: string, filePath: string): Promise<string>
   gitAdd(repoPath: string, files: string[]): Promise<void>
   gitCommit(repoPath: string, message: string): Promise<void>
   gitBranches(repoPath: string): Promise<GitBranch[]>

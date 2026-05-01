@@ -12,6 +12,7 @@ interface NamingState {
 export default function FileExplorer() {
   const rootPath = useFileTreeStore((s) => s.rootPath)
   const entries = useFileTreeStore((s) => s.entries)
+  const recentWorkspaces = useFileTreeStore((s) => s.recentWorkspaces)
   const selectFile = useFileTreeStore((s) => s.selectFile)
   const setRootPath = useFileTreeStore((s) => s.setRootPath)
   const setSelectedPath = useFileTreeStore((s) => s.setSelectedPath)
@@ -21,6 +22,7 @@ export default function FileExplorer() {
   const createFolder = useFileTreeStore((s) => s.createFolder)
 
   const openFile = useEditorStore((s) => s.openFile)
+  const recentFiles = useEditorStore((s) => s.recentFiles)
   const confirmAndHandleDirtyTabs = useEditorStore((s) => s.confirmAndHandleDirtyTabs)
   const pruneTabsByWorkspace = useEditorStore((s) => s.pruneTabsByWorkspace)
 
@@ -29,6 +31,27 @@ export default function FileExplorer() {
   const isSubmitting = useRef(false)
 
   const rootName = rootPath?.split(/[/\\]/).pop() ?? null
+
+  const ensureWorkspaceForFile = useCallback(
+    async (filePath: string) => {
+      const currentRoot = rootPath?.replace(/\\/g, '/').toLowerCase() ?? ''
+      const targetPath = filePath.replace(/\\/g, '/').toLowerCase()
+
+      if (!currentRoot || !targetPath.startsWith(`${currentRoot}/`)) {
+        const sep = filePath.includes('\\') ? '\\' : '/'
+        const parentParts = filePath.split(/[/\\]/)
+        parentParts.pop()
+        const parentPath = parentParts.join(sep)
+        if (parentPath) {
+          await setRootPath(parentPath)
+          pruneTabsByWorkspace(parentPath)
+        }
+      }
+
+      setSelectedPath(filePath)
+    },
+    [rootPath, pruneTabsByWorkspace, setRootPath, setSelectedPath],
+  )
 
   const handleConfirmCreate = useCallback(async () => {
     if (isSubmitting.current) return
@@ -117,6 +140,43 @@ export default function FileExplorer() {
     openFile,
   ])
 
+  const handleOpenRecentWorkspace = useCallback(
+    async (workspace: string) => {
+      const currentRoot = rootPath?.replace(/\\/g, '/').toLowerCase() ?? ''
+      const nextRoot = workspace.replace(/\\/g, '/').toLowerCase()
+      if (currentRoot === nextRoot) return
+
+      const confirmed = await confirmAndHandleDirtyTabs()
+      if (!confirmed) return
+
+      await setRootPath(workspace)
+      pruneTabsByWorkspace(workspace)
+    },
+    [rootPath, confirmAndHandleDirtyTabs, setRootPath, pruneTabsByWorkspace],
+  )
+
+  const handleOpenRecentFile = useCallback(
+    async (filePath: string) => {
+      const sep = filePath.includes('\\') ? '\\' : '/'
+      const parentParts = filePath.split(/[/\\]/)
+      parentParts.pop()
+      const parentPath = parentParts.join(sep)
+      const currentRoot = rootPath?.replace(/\\/g, '/').toLowerCase() ?? ''
+      const nextRoot = parentPath.replace(/\\/g, '/').toLowerCase()
+
+      if (parentPath && currentRoot !== nextRoot) {
+        const confirmed = await confirmAndHandleDirtyTabs()
+        if (!confirmed) return
+        await setRootPath(parentPath)
+        pruneTabsByWorkspace(parentPath)
+      }
+
+      await ensureWorkspaceForFile(filePath)
+      await openFile(filePath)
+    },
+    [ensureWorkspaceForFile, confirmAndHandleDirtyTabs, openFile, pruneTabsByWorkspace, rootPath, setRootPath],
+  )
+
   return (
     <div className="h-full flex flex-col bg-[var(--bg-secondary)]">
       <div className="flex items-center justify-between px-4 py-2 text-[11px] font-semibold tracking-wider text-[var(--text-secondary)] uppercase shrink-0">
@@ -200,7 +260,53 @@ export default function FileExplorer() {
             </button>
           </div>
         ) : (
-          <div className="py-1">
+          <div className="py-1 space-y-3">
+            {(recentWorkspaces.length > 0 || recentFiles.length > 0) && (
+              <div className="px-3">
+                {recentWorkspaces.length > 0 && (
+                  <div className="mb-3">
+                    <div className="mb-1 text-[10px] font-semibold uppercase tracking-wider text-[var(--text-muted)]">
+                      Recent Workspaces
+                    </div>
+                    <div className="space-y-1">
+                      {recentWorkspaces.map((workspace) => (
+                        <button
+                          key={workspace}
+                          onClick={() => {
+                            void handleOpenRecentWorkspace(workspace)
+                          }}
+                          className="w-full text-left px-2 py-1.5 rounded hover:bg-[var(--bg-hover)] text-xs text-[var(--text-primary)] truncate"
+                        >
+                          {workspace}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {recentFiles.length > 0 && (
+                  <div>
+                    <div className="mb-1 text-[10px] font-semibold uppercase tracking-wider text-[var(--text-muted)]">
+                      Recent Files
+                    </div>
+                    <div className="space-y-1">
+                      {recentFiles.slice(0, 8).map((filePath) => (
+                        <button
+                          key={filePath}
+                          onClick={() => {
+                            void handleOpenRecentFile(filePath)
+                          }}
+                          className="w-full text-left px-2 py-1.5 rounded hover:bg-[var(--bg-hover)] text-xs text-[var(--text-primary)] truncate"
+                        >
+                          {filePath}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
             {rootName && (
               <div className="px-3 py-1 text-[11px] font-semibold text-[var(--text-secondary)] uppercase truncate">
                 {rootName}
