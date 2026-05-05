@@ -27,7 +27,10 @@ let monacoConfigured = false
 const uriToFilePath = new Map<string, string>()
 
 function toModelUri(filePath: string): string {
-  return `file-model:///${encodeURIComponent(filePath)}`
+  const encodedPath = Array.from(new TextEncoder().encode(filePath))
+    .map((byte) => byte.toString(16).padStart(2, '0'))
+    .join('')
+  return `file-model://agent-ide/${encodedPath}`
 }
 
 function collectProblems(monaco: typeof Monaco): EditorProblem[] {
