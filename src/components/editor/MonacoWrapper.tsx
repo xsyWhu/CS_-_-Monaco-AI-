@@ -1,7 +1,9 @@
-﻿import Editor, { type OnMount } from '@monaco-editor/react'
+import Editor, { type OnMount } from '@monaco-editor/react'
 import { useEffect, useMemo, useRef } from 'react'
 import type * as Monaco from 'monaco-editor'
 import type { CursorPosition, EditorProblem } from '@/types/editor.types'
+import { documentModelManager } from '@/services/editor/document-model-manager'
+import { collectDiagnostics, subscribeToDiagnosticsChange } from '@/services/editor/diagnostics-manager'
 
 interface MonacoWrapperProps {
   filePath: string
@@ -22,59 +24,10 @@ interface MonacoWrapperProps {
   onProblemsChange?: (problems: EditorProblem[]) => void
 }
 
-let monacoInstance: typeof Monaco | null = null
 let monacoConfigured = false
-const uriToFilePath = new Map<string, string>()
-
-function toModelUri(filePath: string): string {
-  return `file-model:///${encodeURIComponent(filePath)}`
-}
-
-function collectProblems(monaco: typeof Monaco): EditorProblem[] {
-  const problems: EditorProblem[] = []
-
-  for (const model of monaco.editor.getModels()) {
-    const filePath = uriToFilePath.get(model.uri.toString())
-    if (!filePath) continue
-
-    const markers = monaco.editor.getModelMarkers({ resource: model.uri })
-    for (const marker of markers) {
-      problems.push({
-        filePath,
-        line: marker.startLineNumber,
-        column: marker.startColumn,
-        endLine: marker.endLineNumber,
-        endColumn: marker.endColumn,
-        message: marker.message,
-        source: marker.source,
-        code:
-          typeof marker.code === 'string'
-            ? marker.code
-            : marker.code?.value
-              ? String(marker.code.value)
-              : undefined,
-        severity: marker.severity,
-      })
-    }
-  }
-
-  return problems.sort((a, b) => {
-    if (a.severity !== b.severity) return a.severity - b.severity
-    if (a.filePath !== b.filePath) return a.filePath.localeCompare(b.filePath)
-    if (a.line !== b.line) return a.line - b.line
-    return a.column - b.column
-  })
-}
 
 export function disposeMonacoModel(filePath: string): void {
-  if (!monacoInstance) return
-
-  const uri = toModelUri(filePath)
-  const model = monacoInstance.editor.getModel(monacoInstance.Uri.parse(uri))
-  if (model) {
-    model.dispose()
-  }
-  uriToFilePath.delete(uri)
+  documentModelManager.unregister(filePath)
 }
 
 export default function MonacoWrapper({
@@ -93,7 +46,7 @@ export default function MonacoWrapper({
 }: MonacoWrapperProps) {
   const editorRef = useRef<Monaco.editor.IStandaloneCodeEditor | null>(null)
   const markerListenerRef = useRef<Monaco.IDisposable | null>(null)
-  const modelUri = useMemo(() => toModelUri(filePath), [filePath])
+  const modelUri = useMemo(() => documentModelManager.getModelUri(filePath), [filePath])
 
   const revealPositionInEditor = () => {
     if (!editorRef.current || !revealPosition) return
@@ -118,8 +71,8 @@ export default function MonacoWrapper({
 
   const handleMount: OnMount = (editor, monaco) => {
     editorRef.current = editor
-    monacoInstance = monaco
-    uriToFilePath.set(modelUri, filePath)
+    documentModelManager.attach(monaco)
+    documentModelManager.register(filePath)
 
     if (onSave) {
       editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyS, () => {
@@ -189,30 +142,26 @@ export default function MonacoWrapper({
     })
 
     markerListenerRef.current?.dispose()
-    markerListenerRef.current = monaco.editor.onDidChangeMarkers(() => {
-      onProblemsChange?.(collectProblems(monaco))
+    markerListenerRef.current = subscribeToDiagnosticsChange(monaco, (problems) => {
+      onProblemsChange?.(problems)
     })
 
-    onProblemsChange?.(collectProblems(monaco))
+    onProblemsChange?.(collectDiagnostics())
     revealPositionInEditor()
   }
 
   useEffect(() => {
-    uriToFilePath.set(modelUri, filePath)
-  }, [modelUri, filePath])
+    documentModelManager.register(filePath)
+  }, [filePath, modelUri])
 
   useEffect(() => {
     revealPositionInEditor()
   }, [revealPosition?.requestId, filePath])
 
   useEffect(() => {
-    if (!monacoInstance) return
-    const model = monacoInstance.editor.getModel(monacoInstance.Uri.parse(modelUri))
-    if (model) {
-      monacoInstance.editor.setModelLanguage(model, language)
-      onProblemsChange?.(collectProblems(monacoInstance))
-    }
-  }, [modelUri, language, onProblemsChange])
+    documentModelManager.setModelLanguage(filePath, language)
+    onProblemsChange?.(collectDiagnostics())
+  }, [filePath, language, onProblemsChange])
 
   useEffect(() => {
     return () => {

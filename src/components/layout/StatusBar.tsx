@@ -2,15 +2,14 @@ import { GitBranch } from 'lucide-react'
 import { useFileTreeStore } from '@/stores/file-tree.store'
 import { useEditorStore } from '@/stores/editor.store'
 import { useGitStore } from '@/stores/git.store'
+import { saveAllTabs, toggleSplitView } from '@/services/editor/editor-service'
 
 export default function StatusBar() {
   const rootPath = useFileTreeStore((s) => s.rootPath)
   const tabs = useEditorStore((s) => s.tabs)
   const activeTabId = useEditorStore((s) => s.activeTabId)
   const cursorPosition = useEditorStore((s) => s.cursorPosition)
-  const saveAllTabs = useEditorStore((s) => s.saveAllTabs)
   const splitEnabled = useEditorStore((s) => s.splitEnabled)
-  const toggleSplitView = useEditorStore((s) => s.toggleSplitView)
   const gitStatus = useGitStore((s) => s.status)
 
   const activeTab = tabs.find((t) => t.id === activeTabId) ?? null
@@ -43,9 +42,9 @@ export default function StatusBar() {
             }}
             className="px-1.5 py-0.5 rounded hover:bg-[var(--bg-hover)] text-[var(--accent)] transition-colors"
             title="Save all files"
-            >
-              Save All ({dirtyCount})
-            </button>
+          >
+            Save All ({dirtyCount})
+          </button>
         )}
         <button
           onClick={toggleSplitView}
