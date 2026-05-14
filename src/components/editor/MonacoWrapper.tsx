@@ -4,6 +4,7 @@ import type * as Monaco from 'monaco-editor'
 import type { CursorPosition, EditorProblem } from '@/types/editor.types'
 import { documentModelManager } from '@/services/editor/document-model-manager'
 import { collectDiagnostics, subscribeToDiagnosticsChange } from '@/services/editor/diagnostics-manager'
+import { languageFeatureManager, type LanguageFeatureActions } from '@/services/editor/language-feature-manager'
 
 interface MonacoWrapperProps {
   filePath: string
@@ -19,6 +20,7 @@ interface MonacoWrapperProps {
   onSave?: () => void
   onSaveAll?: () => void
   onFormatDocumentReady?: (formatDocument: () => Promise<void>) => void
+  onActionsReady?: (actions: LanguageFeatureActions) => void
   onBlur?: () => void
   onCursorChange?: (position: CursorPosition) => void
   onProblemsChange?: (problems: EditorProblem[]) => void
@@ -40,12 +42,14 @@ export default function MonacoWrapper({
   onSave,
   onSaveAll,
   onFormatDocumentReady,
+  onActionsReady,
   onBlur,
   onCursorChange,
   onProblemsChange,
 }: MonacoWrapperProps) {
   const editorRef = useRef<Monaco.editor.IStandaloneCodeEditor | null>(null)
   const markerListenerRef = useRef<Monaco.IDisposable | null>(null)
+  const featureDisposablesRef = useRef<Monaco.IDisposable[]>([])
   const modelUri = useMemo(() => documentModelManager.getModelUri(filePath), [filePath])
 
   const revealPositionInEditor = () => {
@@ -74,71 +78,14 @@ export default function MonacoWrapper({
     documentModelManager.attach(monaco)
     documentModelManager.register(filePath)
 
-    if (onSave) {
-      editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyS, () => {
-        onSave()
-      })
-    }
-
-    if (onSaveAll) {
-      editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyMod.Shift | monaco.KeyCode.KeyS, () => {
-        onSaveAll()
-      })
-    }
-
-    const formatDocument = async (): Promise<void> => {
-      const action = editor.getAction('editor.action.formatDocument')
-      if (!action) return
-      await action.run()
-    }
-
-    onFormatDocumentReady?.(formatDocument)
-    editor.addCommand(monaco.KeyMod.Shift | monaco.KeyMod.Alt | monaco.KeyCode.KeyF, () => {
-      void formatDocument()
-    })
-
-    const runAction = async (actionId: string): Promise<void> => {
-      const action = editor.getAction(actionId)
-      if (!action) return
-      await action.run()
-    }
-
-    editor.addAction({
-      id: 'agentide.goToDefinition',
-      label: 'Go to Definition',
-      keybindings: [monaco.KeyCode.F12],
-      contextMenuGroupId: 'navigation',
-      contextMenuOrder: 1,
-      run: () => runAction('editor.action.revealDefinition'),
-    })
-
-    editor.addAction({
-      id: 'agentide.findReferences',
-      label: 'Find References',
-      keybindings: [monaco.KeyMod.Shift | monaco.KeyCode.F12],
-      contextMenuGroupId: 'navigation',
-      contextMenuOrder: 2,
-      run: () => runAction('editor.action.referenceSearch.trigger'),
-    })
-
-    editor.addAction({
-      id: 'agentide.renameSymbol',
-      label: 'Rename Symbol',
-      keybindings: [monaco.KeyCode.F2],
-      contextMenuGroupId: 'navigation',
-      contextMenuOrder: 3,
-      run: () => runAction('editor.action.rename'),
-    })
-
-    editor.onDidChangeCursorPosition((event) => {
-      onCursorChange?.({
-        line: event.position.lineNumber,
-        column: event.position.column,
-      })
-    })
-
-    editor.onDidBlurEditorText(() => {
-      onBlur?.()
+    featureDisposablesRef.current.forEach((disposable) => disposable.dispose())
+    featureDisposablesRef.current = languageFeatureManager.registerEditorFeatures(editor, monaco, {
+      onSave,
+      onSaveAll,
+      onFormatDocumentReady,
+      onActionsReady,
+      onCursorChange,
+      onBlur,
     })
 
     markerListenerRef.current?.dispose()
@@ -167,6 +114,8 @@ export default function MonacoWrapper({
     return () => {
       markerListenerRef.current?.dispose()
       markerListenerRef.current = null
+      featureDisposablesRef.current.forEach((disposable) => disposable.dispose())
+      featureDisposablesRef.current = []
     }
   }, [])
 
@@ -179,44 +128,7 @@ export default function MonacoWrapper({
       beforeMount={(monaco) => {
         if (monacoConfigured) return
         monacoConfigured = true
-
-        const tsDefaults = monaco.languages.typescript.typescriptDefaults
-        const jsDefaults = monaco.languages.typescript.javascriptDefaults
-
-        tsDefaults.setEagerModelSync(true)
-        jsDefaults.setEagerModelSync(true)
-
-        const compilerOptions: Monaco.languages.typescript.CompilerOptions = {
-          target: monaco.languages.typescript.ScriptTarget.ES2022,
-          module: monaco.languages.typescript.ModuleKind.ESNext,
-          moduleResolution: monaco.languages.typescript.ModuleResolutionKind.NodeJs,
-          allowJs: true,
-          allowNonTsExtensions: true,
-          jsx: monaco.languages.typescript.JsxEmit.ReactJSX,
-          strict: true,
-          noEmit: true,
-          resolveJsonModule: true,
-          esModuleInterop: true,
-          forceConsistentCasingInFileNames: true,
-          skipLibCheck: true,
-        }
-
-        tsDefaults.setCompilerOptions(compilerOptions)
-        jsDefaults.setCompilerOptions({
-          ...compilerOptions,
-          checkJs: true,
-        })
-
-        tsDefaults.setDiagnosticsOptions({
-          noSemanticValidation: false,
-          noSyntaxValidation: false,
-          noSuggestionDiagnostics: false,
-        })
-        jsDefaults.setDiagnosticsOptions({
-          noSemanticValidation: false,
-          noSyntaxValidation: false,
-          noSuggestionDiagnostics: false,
-        })
+        languageFeatureManager.configureMonaco(monaco)
       }}
       onMount={handleMount}
       onChange={onChange}

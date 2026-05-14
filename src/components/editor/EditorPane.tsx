@@ -1,9 +1,11 @@
-import { useEffect, useMemo, useRef, type DragEventHandler } from 'react'
+import { useEffect, useMemo, useRef, useState, type DragEventHandler } from 'react'
 import { useEditorStore, type EditorPane } from '@/stores/editor.store'
 import { useSettingsStore } from '@/stores/settings.store'
 import EditorTab from './EditorTab'
+import EditorBreadcrumbs from './EditorBreadcrumbs'
 import MonacoWrapper from './MonacoWrapper'
 import { extractOutlineItems } from '@/lib/outline'
+import type { LanguageFeatureActions } from '@/services/editor/language-feature-manager'
 
 interface EditorPaneProps {
   pane: EditorPane
@@ -24,10 +26,13 @@ export default function EditorPaneView({ pane }: EditorPaneProps) {
   const setOutlineItems = useEditorStore((s) => s.setOutlineItems)
   const setFocusedPane = useEditorStore((s) => s.setFocusedPane)
   const focusedPane = useEditorStore((s) => s.focusedPane)
+  const cursorPosition = useEditorStore((s) => s.cursorPosition)
+  const tabCursorPositions = useEditorStore((s) => s.tabCursorPositions)
   const autoSaveMode = useSettingsStore((s) => s.autoSaveMode)
   const autoSaveDelay = useSettingsStore((s) => s.autoSaveDelay)
   const formatOnSave = useSettingsStore((s) => s.formatOnSave)
   const formatDocumentRef = useRef<(() => Promise<void>) | null>(null)
+  const [languageActions, setLanguageActions] = useState<LanguageFeatureActions | null>(null)
 
   const paneTabIds = paneTabs[pane]
   const activeTab = tabs.find((tab) => tab.id === paneTabIds[0]) ?? null
@@ -111,6 +116,13 @@ export default function EditorPaneView({ pane }: EditorPaneProps) {
       onDrop={handleDrop}
       onMouseDown={() => setFocusedPane(pane)}
     >
+      <EditorBreadcrumbs
+        filePath={activeTab.filePath}
+        fileName={activeTab.fileName}
+        outlineItems={outlineItems}
+        cursorPosition={tabCursorPositions[activeTab.id] ?? cursorPosition}
+        actions={languageActions}
+      />
       <div className="flex items-center overflow-x-auto bg-[var(--bg-secondary)] border-b border-[var(--border)] shrink-0">
         {visibleTabs.map((tab) => (
           <EditorTab key={tab.id} tab={tab} isActive={tab.id === activeTab.id} pane={pane} />
@@ -163,6 +175,9 @@ export default function EditorPaneView({ pane }: EditorPaneProps) {
           }}
           onFormatDocumentReady={(formatDocument) => {
             formatDocumentRef.current = formatDocument
+          }}
+          onActionsReady={(actions) => {
+            setLanguageActions(actions)
           }}
         />
       </div>
