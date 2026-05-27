@@ -1,6 +1,7 @@
 export interface Message {
   role: 'system' | 'user' | 'assistant' | 'tool'
   content: string | null
+  reasoning_content?: string | null
   tool_calls?: ToolCall[]
   tool_call_id?: string
   name?: string
@@ -25,7 +26,14 @@ export interface ToolDefinition {
 }
 
 export interface StreamChunk {
-  type: 'text_delta' | 'tool_call_start' | 'tool_call_delta' | 'tool_call_end' | 'done' | 'error'
+  type:
+    | 'text_delta'
+    | 'reasoning_delta'
+    | 'tool_call_start'
+    | 'tool_call_delta'
+    | 'tool_call_end'
+    | 'done'
+    | 'error'
   content?: string
   toolCall?: Partial<ToolCall>
   error?: string

@@ -90,6 +90,8 @@ interface EditorState {
   restoreSessionForWorkspace: (workspacePath: string) => Promise<void>
   clearPendingReveal: () => void
   moveTabToPane: (tabId: string, pane: EditorPane) => void
+  removeRecentFile: (filePath: string) => void
+  clearRecentFiles: () => void
 }
 
 const SESSION_KEY = 'agent-ide.editor.session.v1'
@@ -506,6 +508,18 @@ export const useEditorStore = create<EditorState>((set, get) => ({
         ),
       ),
     })
+    persistSession(get())
+  },
+
+  removeRecentFile: (filePath) => {
+    set((state) => ({
+      recentFiles: state.recentFiles.filter((item) => normalizePath(item) !== normalizePath(filePath)),
+    }))
+    persistSession(get())
+  },
+
+  clearRecentFiles: () => {
+    set({ recentFiles: [] })
     persistSession(get())
   },
 

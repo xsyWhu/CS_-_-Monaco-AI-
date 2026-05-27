@@ -1,4 +1,6 @@
 import { randomUUID } from 'crypto'
+import fs from 'fs'
+import path from 'path'
 import os from 'os'
 import * as pty from 'node-pty'
 
@@ -17,8 +19,8 @@ export default class TerminalService {
 
   create(options?: TerminalCreateOptions): { id: string } {
     const id = randomUUID()
-    const cwd = options?.cwd || process.cwd()
-    const shell = options?.shell || this.getDefaultShell()
+    const cwd = this.resolveCwd(options?.cwd)
+    const shell = this.resolveShell(options?.shell)
 
     try {
       const proc = pty.spawn(shell, [], {
@@ -93,5 +95,63 @@ export default class TerminalService {
       return 'powershell.exe'
     }
     return process.env.SHELL || '/bin/bash'
+  }
+
+  private resolveShell(requestedShell?: string): string {
+    if (requestedShell && this.isUsableShell(requestedShell)) {
+      return requestedShell
+    }
+
+    const candidates = os.platform() === 'win32'
+      ? ['powershell.exe', 'pwsh.exe', 'cmd.exe']
+      : [process.env.SHELL, '/bin/bash', '/bin/zsh', '/bin/sh']
+
+    for (const candidate of candidates) {
+      if (candidate && this.isUsableShell(candidate)) {
+        return candidate
+      }
+    }
+
+    return this.getDefaultShell()
+  }
+
+  private resolveCwd(requestedCwd?: string): string {
+    const candidates = [
+      requestedCwd,
+      process.env.PWD,
+      process.cwd(),
+      os.homedir(),
+    ]
+
+    for (const candidate of candidates) {
+      if (!candidate) continue
+      try {
+        const stats = fs.statSync(candidate)
+        if (stats.isDirectory()) {
+          return path.resolve(candidate)
+        }
+      } catch {
+        // Try the next candidate.
+      }
+    }
+
+    return process.cwd()
+  }
+
+  private isUsableShell(shellPath: string): boolean {
+    if (os.platform() === 'win32') {
+      return true
+    }
+
+    if (path.isAbsolute(shellPath)) {
+      try {
+        const stats = fs.statSync(shellPath)
+        return stats.isFile()
+      } catch {
+        return false
+      }
+    }
+
+    return true
   }
 }

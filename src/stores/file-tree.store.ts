@@ -54,6 +54,8 @@ interface FileTreeState {
   selectFile: () => Promise<string | null>
   setRootPath: (path: string) => Promise<void>
   addRecentWorkspace: (path: string) => void
+  removeRecentWorkspace: (path: string) => void
+  clearRecentWorkspaces: () => void
   loadChildren: (dirPath: string) => Promise<void>
   toggleDirectory: (path: string) => void
   setSelectedPath: (path: string | null) => void
@@ -129,6 +131,17 @@ export const useFileTreeStore = create<FileTreeState>((set, get) => ({
     const recentWorkspaces = [path, ...get().recentWorkspaces.filter((item) => item !== path)].slice(0, 10)
     saveRecentWorkspaces(recentWorkspaces)
     set({ recentWorkspaces })
+  },
+
+  removeRecentWorkspace: (path) => {
+    const recentWorkspaces = get().recentWorkspaces.filter((item) => item !== path)
+    saveRecentWorkspaces(recentWorkspaces)
+    set({ recentWorkspaces })
+  },
+
+  clearRecentWorkspaces: () => {
+    saveRecentWorkspaces([])
+    set({ recentWorkspaces: [] })
   },
 
   loadChildren: async (dirPath) => {

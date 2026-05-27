@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react'
 import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels'
+import { TerminalSquare } from 'lucide-react'
 import { useSettingsStore } from '@/stores/settings.store'
+import { useTerminalStore } from '@/stores/terminal.store'
 import Sidebar from './Sidebar'
 import StatusBar from './StatusBar'
 import EditorArea from '@/components/editor/EditorArea'
@@ -27,6 +29,11 @@ export default function AppLayout() {
   const toggleSidebar = useSettingsStore((s) => s.toggleSidebar)
   const chatVisible = useSettingsStore((s) => s.chatVisible)
   const terminalVisible = useSettingsStore((s) => s.terminalVisible)
+  const toggleTerminal = useSettingsStore((s) => s.toggleTerminal)
+  const toggleThemeMode = useSettingsStore((s) => s.toggleThemeMode)
+  const setUIFontSize = useSettingsStore((s) => s.setUIFontSize)
+  const terminalCount = useTerminalStore((s) => s.terminals.length)
+  const createTerminal = useTerminalStore((s) => s.createTerminal)
   const [paletteMode, setPaletteMode] = useState<'quickOpen' | 'gotoLine'>('quickOpen')
   const [paletteOpen, setPaletteOpen] = useState(false)
 
@@ -55,6 +62,37 @@ export default function AppLayout() {
         return
       }
 
+      if (matchesShortcut(event, EditorShortcuts.toggleTerminal)) {
+        event.preventDefault()
+        if (!terminalVisible && terminalCount === 0) {
+          void createTerminal()
+        }
+        toggleTerminal()
+        return
+      }
+
+      if (matchesShortcut(event, EditorShortcuts.toggleTheme)) {
+        event.preventDefault()
+        toggleThemeMode()
+        return
+      }
+
+      if (matchesShortcut(event, EditorShortcuts.increaseFontSize)) {
+        event.preventDefault()
+        const current = document.documentElement.style.getPropertyValue('--app-font-size')
+        const parsed = Number.parseInt(current, 10)
+        setUIFontSize((Number.isFinite(parsed) ? parsed : 15) + 1)
+        return
+      }
+
+      if (matchesShortcut(event, EditorShortcuts.decreaseFontSize)) {
+        event.preventDefault()
+        const current = document.documentElement.style.getPropertyValue('--app-font-size')
+        const parsed = Number.parseInt(current, 10)
+        setUIFontSize((Number.isFinite(parsed) ? parsed : 15) - 1)
+        return
+      }
+
       if (isTypingTarget(event.target) && paletteOpen) {
         return
       }
@@ -62,7 +100,18 @@ export default function AppLayout() {
 
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [paletteOpen, setSidebarPanel, sidebarVisible, toggleSidebar])
+  }, [
+    createTerminal,
+    paletteOpen,
+    setSidebarPanel,
+    sidebarVisible,
+    terminalCount,
+    terminalVisible,
+    toggleSidebar,
+    toggleTerminal,
+    toggleThemeMode,
+    setUIFontSize,
+  ])
 
   return (
     <div className="h-full flex flex-col overflow-hidden">
@@ -72,6 +121,18 @@ export default function AppLayout() {
           Agent IDE
         </span>
         <div className="titlebar-no-drag flex items-center gap-1 text-[var(--text-muted)] text-xs">
+          <button
+            onClick={() => {
+              if (!terminalVisible && terminalCount === 0) {
+                void createTerminal()
+              }
+              toggleTerminal()
+            }}
+            className="px-2 py-1 rounded hover:bg-[var(--bg-hover)] hover:text-[var(--text-primary)] transition-colors"
+            title="Toggle Terminal"
+          >
+            <TerminalSquare size={14} />
+          </button>
           <span className="opacity-50">⎯</span>
           <span className="opacity-50">☐</span>
           <span className="opacity-50">✕</span>

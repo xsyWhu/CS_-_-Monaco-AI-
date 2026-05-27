@@ -54,8 +54,14 @@ export default class OpenAIProvider implements LLMProvider {
       const activeToolCalls = new Map<number, { id: string; name: string; arguments: string }>()
 
       for await (const chunk of stream) {
-        const delta = chunk.choices[0]?.delta
+        const delta = chunk.choices[0]?.delta as
+          | (OpenAI.ChatCompletionChunk.Choice.Delta & { reasoning_content?: string })
+          | undefined
         if (!delta) continue
+
+        if (delta.reasoning_content) {
+          yield { type: 'reasoning_delta', content: delta.reasoning_content }
+        }
 
         if (delta.content) {
           yield { type: 'text_delta', content: delta.content }
@@ -162,9 +168,12 @@ export default class OpenAIProvider implements LLMProvider {
     }
 
     if (msg.role === 'assistant') {
-      const result: OpenAI.ChatCompletionAssistantMessageParam = {
+      const result: Record<string, unknown> = {
         role: 'assistant',
         content: msg.content,
+      }
+      if (msg.reasoning_content) {
+        result.reasoning_content = msg.reasoning_content
       }
       if (msg.tool_calls && msg.tool_calls.length > 0) {
         result.tool_calls = msg.tool_calls.map((tc) => ({
@@ -176,7 +185,7 @@ export default class OpenAIProvider implements LLMProvider {
           },
         }))
       }
-      return result
+      return result as OpenAI.ChatCompletionMessageParam
     }
 
     if (msg.role === 'system') {

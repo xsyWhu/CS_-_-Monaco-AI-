@@ -2,32 +2,17 @@ import { useRef, useEffect } from 'react'
 import { Terminal } from '@xterm/xterm'
 import { FitAddon } from '@xterm/addon-fit'
 import '@xterm/xterm/css/xterm.css'
-import { useSettingsStore } from '@/stores/settings.store'
 
 interface TerminalInstanceProps {
   terminalId: string
+  themeMode: 'dark' | 'light'
+  uiFontSize: number
 }
 
-export default function TerminalInstance({ terminalId }: TerminalInstanceProps) {
+export default function TerminalInstance({ terminalId, themeMode, uiFontSize }: TerminalInstanceProps) {
   const containerRef = useRef<HTMLDivElement>(null)
   const terminalRef = useRef<Terminal | null>(null)
   const fitAddonRef = useRef<FitAddon | null>(null)
-  const themeMode = useSettingsStore((s) => s.themeMode)
-  const uiFontSize = useSettingsStore((s) => s.uiFontSize)
-
-  const applyTerminalAppearance = () => {
-    const terminal = terminalRef.current
-    if (!terminal) return
-
-    const isLight = themeMode === 'light'
-    terminal.options.fontSize = Math.max(uiFontSize - 1, 12)
-    terminal.options.theme = {
-      background: isLight ? '#f6f8fc' : '#181825',
-      foreground: isLight ? '#1f2937' : '#cdd6f4',
-      cursor: isLight ? '#2563eb' : '#89b4fa',
-      selectionBackground: isLight ? '#bfdbfe' : '#45475a',
-    }
-  }
 
   const syncTerminalSize = () => {
     const terminal = terminalRef.current
@@ -45,15 +30,22 @@ export default function TerminalInstance({ terminalId }: TerminalInstanceProps) 
   useEffect(() => {
     if (!containerRef.current) return
 
+    const isLight = themeMode === 'light'
     const terminal = new Terminal({
       fontFamily: 'Consolas, Monaco, monospace',
+      fontSize: Math.max(uiFontSize - 1, 12),
+      theme: {
+        background: isLight ? '#f6f8fc' : '#181825',
+        foreground: isLight ? '#1f2937' : '#cdd6f4',
+        cursor: isLight ? '#2563eb' : '#89b4fa',
+        selectionBackground: isLight ? '#bfdbfe' : '#45475a',
+      },
       cursorBlink: true,
     })
 
     const fitAddon = new FitAddon()
     terminal.loadAddon(fitAddon)
     terminal.open(containerRef.current)
-    applyTerminalAppearance()
 
     requestAnimationFrame(() => {
       syncTerminalSize()
@@ -87,11 +79,7 @@ export default function TerminalInstance({ terminalId }: TerminalInstanceProps) 
       terminalRef.current = null
       fitAddonRef.current = null
     }
-  }, [terminalId])
-
-  useEffect(() => {
-    applyTerminalAppearance()
-  }, [themeMode, uiFontSize])
+  }, [terminalId, themeMode, uiFontSize])
 
   return <div ref={containerRef} className="h-full w-full" />
 }

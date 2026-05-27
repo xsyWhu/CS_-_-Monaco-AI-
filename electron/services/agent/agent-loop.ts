@@ -74,6 +74,7 @@ export default class AgentLoop {
         const toolDefinitions = this.toolRegistry.getToolDefinitions()
 
         let fullText = ''
+        let currentReasoning = ''
         const collectedToolCalls: ToolCall[] = []
         const toolCallBuilders = new Map<string, { id: string; name: string; arguments: string }>()
 
@@ -91,6 +92,12 @@ export default class AgentLoop {
               if (chunk.content) {
                 fullText += chunk.content
                 callbacks.onTextDelta(chunk.content)
+              }
+              break
+
+            case 'reasoning_delta':
+              if (chunk.content) {
+                currentReasoning += chunk.content
               }
               break
 
@@ -150,6 +157,7 @@ export default class AgentLoop {
           const assistantMsg: Message = {
             role: 'assistant',
             content: fullText || null,
+            reasoning_content: currentReasoning || undefined,
             tool_calls: collectedToolCalls,
           }
           conversationMessages.push(assistantMsg)
@@ -206,6 +214,7 @@ export default class AgentLoop {
             const assistantMsg: Message = {
               role: 'assistant',
               content: cleanText || null,
+              reasoning_content: currentReasoning || undefined,
               tool_calls: fallbackToolCalls,
             }
             conversationMessages.push(assistantMsg)
@@ -245,6 +254,11 @@ export default class AgentLoop {
         // --- Path C: Normal text-only completion ---
         console.log(`[AgentLoop] Iteration ${iterations}: Text-only response (${fullText.length} chars)`)
         accumulatedText += fullText
+        conversationMessages.push({
+          role: 'assistant',
+          content: fullText || null,
+          reasoning_content: currentReasoning || undefined,
+        })
         callbacks.onComplete(accumulatedText)
         return
       }

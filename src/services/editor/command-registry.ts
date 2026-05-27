@@ -14,6 +14,10 @@ export const EditorCommands = {
   reopenClosedTab: 'editor.reopenClosedTab',
   toggleSplitView: 'editor.toggleSplitView',
   outline: 'editor.outline',
+  toggleTerminal: 'editor.toggleTerminal',
+  toggleTheme: 'editor.toggleTheme',
+  increaseFontSize: 'editor.increaseFontSize',
+  decreaseFontSize: 'editor.decreaseFontSize',
 } as const
 
 export const EditorShortcuts = {
@@ -25,6 +29,10 @@ export const EditorShortcuts = {
   reopenClosedTab: { key: 't', ctrlOrMeta: true, shift: true },
   toggleSplitView: { key: '\\', ctrlOrMeta: true },
   outline: { key: 'o', ctrlOrMeta: true, shift: true },
+  toggleTerminal: { key: '`', ctrlOrMeta: true },
+  toggleTheme: { key: 't', ctrlOrMeta: true, alt: true },
+  increaseFontSize: { key: '=', ctrlOrMeta: true, alt: true },
+  decreaseFontSize: { key: '-', ctrlOrMeta: true, alt: true },
 } as const satisfies Record<string, ShortcutDefinition>
 
 export function matchesShortcut(event: KeyboardEvent, shortcut: ShortcutDefinition): boolean {

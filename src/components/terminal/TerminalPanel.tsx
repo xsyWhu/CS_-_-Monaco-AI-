@@ -1,5 +1,6 @@
 import { Plus, X } from 'lucide-react'
 import { useTerminalStore } from '../../stores/terminal.store'
+import { useSettingsStore } from '@/stores/settings.store'
 import TerminalTab from './TerminalTab'
 import TerminalInstance from './TerminalInstance'
 
@@ -8,6 +9,8 @@ export default function TerminalPanel() {
   const activeTerminalId = useTerminalStore((s) => s.activeTerminalId)
   const createTerminal = useTerminalStore((s) => s.createTerminal)
   const closeTerminal = useTerminalStore((s) => s.closeTerminal)
+  const themeMode = useSettingsStore((s) => s.themeMode)
+  const uiFontSize = useSettingsStore((s) => s.uiFontSize)
 
   return (
     <div className="h-full flex flex-col bg-[var(--bg-secondary)]">
@@ -60,7 +63,12 @@ export default function TerminalPanel() {
           </div>
         ) : (
           activeTerminalId && (
-            <TerminalInstance key={activeTerminalId} terminalId={activeTerminalId} />
+            <TerminalInstance
+              key={`${activeTerminalId}-${themeMode}-${uiFontSize}`}
+              terminalId={activeTerminalId}
+              themeMode={themeMode}
+              uiFontSize={uiFontSize}
+            />
           )
         )}
       </div>

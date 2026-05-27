@@ -1,5 +1,5 @@
 import { useCallback, useRef, useState } from 'react'
-import { ChevronsDownUp, File, FilePlus, FolderOpen, FolderPlus, RefreshCw } from 'lucide-react'
+import { ChevronDown, ChevronRight, ChevronsDownUp, File, FilePlus, FolderOpen, FolderPlus, RefreshCw, Trash2, X } from 'lucide-react'
 import { useFileTreeStore } from '../../stores/file-tree.store'
 import { useEditorStore } from '../../stores/editor.store'
 import FileTreeItem from './FileTreeItem'
@@ -13,6 +13,8 @@ export default function FileExplorer() {
   const rootPath = useFileTreeStore((s) => s.rootPath)
   const entries = useFileTreeStore((s) => s.entries)
   const recentWorkspaces = useFileTreeStore((s) => s.recentWorkspaces)
+  const removeRecentWorkspace = useFileTreeStore((s) => s.removeRecentWorkspace)
+  const clearRecentWorkspaces = useFileTreeStore((s) => s.clearRecentWorkspaces)
   const selectFile = useFileTreeStore((s) => s.selectFile)
   const setRootPath = useFileTreeStore((s) => s.setRootPath)
   const setSelectedPath = useFileTreeStore((s) => s.setSelectedPath)
@@ -23,14 +25,38 @@ export default function FileExplorer() {
 
   const openFile = useEditorStore((s) => s.openFile)
   const recentFiles = useEditorStore((s) => s.recentFiles)
+  const removeRecentFile = useEditorStore((s) => s.removeRecentFile)
+  const clearRecentFiles = useEditorStore((s) => s.clearRecentFiles)
   const confirmAndHandleDirtyTabs = useEditorStore((s) => s.confirmAndHandleDirtyTabs)
   const pruneTabsByWorkspace = useEditorStore((s) => s.pruneTabsByWorkspace)
 
   const [naming, setNaming] = useState<NamingState | null>(null)
   const [tempName, setTempName] = useState('')
+  const [recentWorkspacesCollapsed, setRecentWorkspacesCollapsed] = useState(() => {
+    return localStorage.getItem('agent-ide.explorer.recent-workspaces.collapsed') === '1'
+  })
+  const [recentFilesCollapsed, setRecentFilesCollapsed] = useState(() => {
+    return localStorage.getItem('agent-ide.explorer.recent-files.collapsed') === '1'
+  })
   const isSubmitting = useRef(false)
 
   const rootName = rootPath?.split(/[/\\]/).pop() ?? null
+
+  const toggleRecentWorkspaces = useCallback(() => {
+    setRecentWorkspacesCollapsed((value) => {
+      const next = !value
+      localStorage.setItem('agent-ide.explorer.recent-workspaces.collapsed', next ? '1' : '0')
+      return next
+    })
+  }, [])
+
+  const toggleRecentFiles = useCallback(() => {
+    setRecentFilesCollapsed((value) => {
+      const next = !value
+      localStorage.setItem('agent-ide.explorer.recent-files.collapsed', next ? '1' : '0')
+      return next
+    })
+  }, [])
 
   const ensureWorkspaceForFile = useCallback(
     async (filePath: string) => {
@@ -265,43 +291,99 @@ export default function FileExplorer() {
               <div className="px-3">
                 {recentWorkspaces.length > 0 && (
                   <div className="mb-3">
-                    <div className="mb-1 text-[10px] font-semibold uppercase tracking-wider text-[var(--text-muted)]">
-                      Recent Workspaces
+                    <div className="mb-1 flex items-center justify-between gap-2 text-[10px] font-semibold uppercase tracking-wider text-[var(--text-muted)]">
+                      <button
+                        onClick={toggleRecentWorkspaces}
+                        className="flex min-w-0 items-center gap-1 hover:text-[var(--text-primary)] transition-colors"
+                        title={recentWorkspacesCollapsed ? 'Expand recent workspaces' : 'Collapse recent workspaces'}
+                      >
+                        {recentWorkspacesCollapsed ? <ChevronRight size={12} /> : <ChevronDown size={12} />}
+                        <span>Recent Workspaces</span>
+                      </button>
+                      <button
+                        onClick={() => clearRecentWorkspaces()}
+                        className="p-1 rounded hover:bg-[var(--bg-hover)] text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors"
+                        title="Clear Recent Workspaces"
+                      >
+                        <Trash2 size={12} />
+                      </button>
                     </div>
-                    <div className="space-y-1">
-                      {recentWorkspaces.map((workspace) => (
-                        <button
-                          key={workspace}
-                          onClick={() => {
-                            void handleOpenRecentWorkspace(workspace)
-                          }}
-                          className="w-full text-left px-2 py-1.5 rounded hover:bg-[var(--bg-hover)] text-xs text-[var(--text-primary)] truncate"
-                        >
-                          {workspace}
-                        </button>
-                      ))}
-                    </div>
+                    {!recentWorkspacesCollapsed && (
+                      <div className="space-y-1">
+                        {recentWorkspaces.map((workspace) => (
+                          <div
+                            key={workspace}
+                            className="group flex items-center gap-1 rounded hover:bg-[var(--bg-hover)]"
+                          >
+                            <button
+                              onClick={() => {
+                                void handleOpenRecentWorkspace(workspace)
+                              }}
+                              className="min-w-0 flex-1 px-2 py-1.5 text-left text-xs text-[var(--text-primary)] truncate"
+                              title={workspace}
+                            >
+                              {workspace}
+                            </button>
+                            <button
+                              onClick={() => removeRecentWorkspace(workspace)}
+                              className="shrink-0 p-1 mr-1 rounded text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-primary)] opacity-0 group-hover:opacity-100 transition-all"
+                              title="Remove from recent workspaces"
+                            >
+                              <X size={12} />
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 )}
 
                 {recentFiles.length > 0 && (
                   <div>
-                    <div className="mb-1 text-[10px] font-semibold uppercase tracking-wider text-[var(--text-muted)]">
-                      Recent Files
+                    <div className="mb-1 flex items-center justify-between gap-2 text-[10px] font-semibold uppercase tracking-wider text-[var(--text-muted)]">
+                      <button
+                        onClick={toggleRecentFiles}
+                        className="flex min-w-0 items-center gap-1 hover:text-[var(--text-primary)] transition-colors"
+                        title={recentFilesCollapsed ? 'Expand recent files' : 'Collapse recent files'}
+                      >
+                        {recentFilesCollapsed ? <ChevronRight size={12} /> : <ChevronDown size={12} />}
+                        <span>Recent Files</span>
+                      </button>
+                      <button
+                        onClick={() => clearRecentFiles()}
+                        className="p-1 rounded hover:bg-[var(--bg-hover)] text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors"
+                        title="Clear Recent Files"
+                      >
+                        <Trash2 size={12} />
+                      </button>
                     </div>
-                    <div className="space-y-1">
-                      {recentFiles.slice(0, 8).map((filePath) => (
-                        <button
-                          key={filePath}
-                          onClick={() => {
-                            void handleOpenRecentFile(filePath)
-                          }}
-                          className="w-full text-left px-2 py-1.5 rounded hover:bg-[var(--bg-hover)] text-xs text-[var(--text-primary)] truncate"
-                        >
-                          {filePath}
-                        </button>
-                      ))}
-                    </div>
+                    {!recentFilesCollapsed && (
+                      <div className="space-y-1">
+                        {recentFiles.slice(0, 8).map((filePath) => (
+                          <div
+                            key={filePath}
+                            className="group flex items-center gap-1 rounded hover:bg-[var(--bg-hover)]"
+                          >
+                            <button
+                              onClick={() => {
+                                void handleOpenRecentFile(filePath)
+                              }}
+                              className="min-w-0 flex-1 px-2 py-1.5 text-left text-xs text-[var(--text-primary)] truncate"
+                              title={filePath}
+                            >
+                              {filePath}
+                            </button>
+                            <button
+                              onClick={() => removeRecentFile(filePath)}
+                              className="shrink-0 p-1 mr-1 rounded text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-primary)] opacity-0 group-hover:opacity-100 transition-all"
+                              title="Remove from recent files"
+                            >
+                              <X size={12} />
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
