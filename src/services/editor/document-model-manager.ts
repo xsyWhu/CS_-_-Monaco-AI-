@@ -5,12 +5,17 @@ class DocumentModelManager {
   private monacoInstance: typeof Monaco | null = null
   private uriToFilePath = new Map<string, string>()
 
+  private normalizeFilePath(filePath: string): string {
+    return filePath.replace(/\\/g, '/').replace(/^\/+/, '')
+  }
+
   attach(monaco: typeof Monaco): void {
     this.monacoInstance = monaco
   }
 
   getModelUri(filePath: string): string {
-    return `file-model:///${encodeURIComponent(filePath)}`
+    const normalizedPath = this.normalizeFilePath(filePath)
+    return `file-model:///model/${encodeURIComponent(normalizedPath)}`
   }
 
   register(filePath: string): string {
