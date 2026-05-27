@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { Search, File, MapPinned, Clock3 } from 'lucide-react'
 import { useEditorStore } from '@/stores/editor.store'
 import { useFileTreeStore } from '@/stores/file-tree.store'
+import { buildQuickOpenEntries, parseGoToLineInput, type QuickOpenEntry } from '@/services/editor/navigation-manager'
 
 type CommandPaletteMode = 'quickOpen' | 'gotoLine'
 
@@ -9,12 +10,6 @@ interface CommandPaletteProps {
   isOpen: boolean
   mode: CommandPaletteMode
   onClose: () => void
-}
-
-interface QuickOpenResult {
-  filePath: string
-  fileName: string
-  source: 'recent' | 'open' | 'search'
 }
 
 export default function CommandPalette({ isOpen, mode, onClose }: CommandPaletteProps) {
@@ -26,7 +21,7 @@ export default function CommandPalette({ isOpen, mode, onClose }: CommandPalette
   const openFileAtPosition = useEditorStore((s) => s.openFileAtPosition)
 
   const [query, setQuery] = useState('')
-  const [results, setResults] = useState<QuickOpenResult[]>([])
+  const [results, setResults] = useState<QuickOpenEntry[]>([])
   const [selectedIndex, setSelectedIndex] = useState(0)
   const inputRef = useRef<HTMLInputElement>(null)
 
@@ -59,55 +54,20 @@ export default function CommandPalette({ isOpen, mode, onClose }: CommandPalette
     if (!isOpen || mode !== 'quickOpen') return
 
     const trimmed = query.trim()
-    if (!rootPath) {
-      const fallback = recentFiles
-        .map((filePath) => ({
-          filePath,
-          fileName: filePath.split(/[/\\]/).pop() || filePath,
-          source: 'recent' as const,
-        }))
-        .filter((item) =>
-          trimmed ? item.fileName.toLowerCase().includes(trimmed.toLowerCase()) : true,
-        )
-      setResults(fallback)
-      return
-    }
-
     const controller = new AbortController()
     const timer = setTimeout(async () => {
       try {
-        const searchResults = trimmed
-          ? await window.api.searchFileNames(rootPath, trimmed)
-          : []
-
-        const tabResults = tabs
-          .map((tab) => ({
-            filePath: tab.filePath,
-            fileName: tab.fileName,
-            source: 'open' as const,
-          }))
-          .filter((item) =>
-            trimmed ? item.fileName.toLowerCase().includes(trimmed.toLowerCase()) : true,
-          )
-
-        const recentResults = recentFiles
-          .map((filePath) => ({
-            filePath,
-            fileName: filePath.split(/[/\\]/).pop() || filePath,
-            source: 'recent' as const,
-          }))
-          .filter((item) =>
-            trimmed ? item.fileName.toLowerCase().includes(trimmed.toLowerCase()) : true,
-          )
-
-        const apiResults = searchResults.map((item) => ({
-          filePath: item.filePath,
-          fileName: item.fileName,
-          source: 'search' as const,
-        }))
+        const searchResults =
+          trimmed && rootPath ? await window.api.searchFileNames(rootPath, trimmed) : []
 
         if (!controller.signal.aborted) {
-          setResults([...tabResults, ...recentResults, ...apiResults].slice(0, 50))
+          const nextResults = buildQuickOpenEntries({
+            query: trimmed,
+            tabs,
+            recentFiles,
+            searchResults,
+          })
+          setResults(nextResults)
           setSelectedIndex(0)
         }
       } catch (error) {
@@ -131,14 +91,9 @@ export default function CommandPalette({ isOpen, mode, onClose }: CommandPalette
 
   const handleGoToLine = async () => {
     if (!activeTab) return
-
-    const normalized = query.trim()
-    if (!normalized) return
-
-    const [lineText, columnText] = normalized.split(':')
-    const line = Math.max(1, Number(lineText) || 1)
-    const column = Math.max(1, Number(columnText) || 1)
-    await openFileAtPosition(activeTab.filePath, line, column)
+    const parsed = parseGoToLineInput(query)
+    if (!parsed) return
+    await openFileAtPosition(activeTab.filePath, parsed.line, parsed.column)
     onClose()
   }
 
@@ -154,7 +109,11 @@ export default function CommandPalette({ isOpen, mode, onClose }: CommandPalette
         onMouseDown={(e) => e.stopPropagation()}
       >
         <div className="flex items-center gap-2 px-4 py-3 border-b border-[var(--border)] bg-[var(--bg-secondary)]">
-          {mode === 'quickOpen' ? <Search size={16} className="text-[var(--accent)]" /> : <MapPinned size={16} className="text-[var(--accent)]" />}
+          {mode === 'quickOpen' ? (
+            <Search size={16} className="text-[var(--accent)]" />
+          ) : (
+            <MapPinned size={16} className="text-[var(--accent)]" />
+          )}
           <input
             ref={inputRef}
             value={query}

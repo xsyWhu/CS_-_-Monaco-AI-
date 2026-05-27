@@ -4,23 +4,26 @@ import { Code2 } from 'lucide-react'
 import { useEffect, useRef } from 'react'
 import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels'
 import EditorPaneView from './EditorPane'
+import { EditorShortcuts, matchesShortcut } from '@/services/editor/command-registry'
+import {
+  closeActiveTab,
+  reopenClosedTab,
+  saveAllTabs,
+  saveActiveTab,
+  toggleSplitView,
+} from '@/services/editor/editor-service'
 
 export default function EditorArea() {
   const tabs = useEditorStore((s) => s.tabs)
   const activeTabId = useEditorStore((s) => s.activeTabId)
   const splitEnabled = useEditorStore((s) => s.splitEnabled)
   const paneTabs = useEditorStore((s) => s.paneTabs)
-  const toggleSplitView = useEditorStore((s) => s.toggleSplitView)
   const focusedPane = useEditorStore((s) => s.focusedPane)
-  const saveAllTabs = useEditorStore((s) => s.saveAllTabs)
-  const saveTab = useEditorStore((s) => s.saveTab)
-  const closeTab = useEditorStore((s) => s.closeTab)
-  const reopenClosedTab = useEditorStore((s) => s.reopenClosedTab)
   const tabPathsRef = useRef<string[]>([])
 
   useEffect(() => {
     const handler = (event: KeyboardEvent) => {
-      if ((event.ctrlKey || event.metaKey) && event.shiftKey && event.key.toLowerCase() === 's') {
+      if (matchesShortcut(event, EditorShortcuts.saveAll)) {
         const target = event.target as HTMLElement | null
         if (target?.closest?.('.monaco-editor')) return
         event.preventDefault()
@@ -30,23 +33,19 @@ export default function EditorArea() {
         return
       }
 
-      if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 's') {
+      if (matchesShortcut(event, EditorShortcuts.save)) {
         const target = event.target as HTMLElement | null
         if (target?.closest?.('.monaco-editor')) return
         event.preventDefault()
-        if (activeTabId) {
-          void saveTab(activeTabId).catch((error) => {
-            console.error('Failed to save active tab:', error)
-          })
-        }
+        void saveActiveTab().catch((error) => {
+          console.error('Failed to save active tab:', error)
+        })
         return
       }
 
-      if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'w') {
+      if (matchesShortcut(event, EditorShortcuts.closeTab)) {
         event.preventDefault()
-        if (activeTabId) {
-          void closeTab(activeTabId)
-        }
+        void closeActiveTab()
         return
       }
 
@@ -63,13 +62,13 @@ export default function EditorArea() {
         return
       }
 
-      if ((event.ctrlKey || event.metaKey) && event.key === '\\') {
+      if (matchesShortcut(event, EditorShortcuts.toggleSplitView)) {
         event.preventDefault()
         toggleSplitView()
         return
       }
 
-      if ((event.ctrlKey || event.metaKey) && event.shiftKey && event.key.toLowerCase() === 't') {
+      if (matchesShortcut(event, EditorShortcuts.reopenClosedTab)) {
         event.preventDefault()
         void reopenClosedTab()
         return
@@ -78,7 +77,7 @@ export default function EditorArea() {
 
     window.addEventListener('keydown', handler)
     return () => window.removeEventListener('keydown', handler)
-  }, [activeTabId, closeTab, focusedPane, paneTabs, reopenClosedTab, saveAllTabs, saveTab, toggleSplitView])
+  }, [focusedPane, paneTabs])
 
   useEffect(() => {
     const prevPaths = tabPathsRef.current

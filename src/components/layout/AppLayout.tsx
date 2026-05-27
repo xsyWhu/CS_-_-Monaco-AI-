@@ -7,6 +7,7 @@ import EditorArea from '@/components/editor/EditorArea'
 import TerminalPanel from '@/components/terminal/TerminalPanel'
 import ChatPanel from '@/components/chat/ChatPanel'
 import CommandPalette from '@/components/editor/CommandPalette'
+import { EditorShortcuts, isTypingTarget, matchesShortcut } from '@/services/editor/command-registry'
 
 function ResizeHandle({ direction = 'horizontal' }: { direction?: 'horizontal' | 'vertical' }) {
   const isHorizontal = direction === 'horizontal'
@@ -31,28 +32,21 @@ export default function AppLayout() {
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
-      const target = event.target as HTMLElement | null
-      const isTypingTarget =
-        target &&
-        (target.tagName === 'INPUT' ||
-          target.tagName === 'TEXTAREA' ||
-          target.isContentEditable)
-
-      if ((event.ctrlKey || event.metaKey) && !event.shiftKey && event.key.toLowerCase() === 'p') {
+      if (matchesShortcut(event, EditorShortcuts.quickOpen)) {
         event.preventDefault()
         setPaletteMode('quickOpen')
         setPaletteOpen(true)
         return
       }
 
-      if ((event.ctrlKey || event.metaKey) && !event.shiftKey && event.key.toLowerCase() === 'g') {
+      if (matchesShortcut(event, EditorShortcuts.gotoLine)) {
         event.preventDefault()
         setPaletteMode('gotoLine')
         setPaletteOpen(true)
         return
       }
 
-      if ((event.ctrlKey || event.metaKey) && event.shiftKey && event.key.toLowerCase() === 'o') {
+      if (matchesShortcut(event, EditorShortcuts.outline)) {
         event.preventDefault()
         if (!sidebarVisible) {
           toggleSidebar()
@@ -61,7 +55,7 @@ export default function AppLayout() {
         return
       }
 
-      if (isTypingTarget && paletteOpen) {
+      if (isTypingTarget(event.target) && paletteOpen) {
         return
       }
     }
