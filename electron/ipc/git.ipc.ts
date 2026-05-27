@@ -30,6 +30,20 @@ export function registerGitIPC(): void {
   )
 
   ipcMain.handle(
+    'git:unstage',
+    (_event: IpcMainInvokeEvent, repoPath: string, files: string[]) => {
+      return gitService.unstage(repoPath, files)
+    },
+  )
+
+  ipcMain.handle(
+    'git:discard',
+    (_event: IpcMainInvokeEvent, repoPath: string, files: string[]) => {
+      return gitService.discard(repoPath, files)
+    },
+  )
+
+  ipcMain.handle(
     'git:commit',
     (_event: IpcMainInvokeEvent, repoPath: string, message: string) => {
       return gitService.commit(repoPath, message)
@@ -46,6 +60,14 @@ export function registerGitIPC(): void {
       return gitService.checkout(repoPath, branch)
     },
   )
+
+  ipcMain.handle('git:pull', (_event: IpcMainInvokeEvent, repoPath: string) => {
+    return gitService.pull(repoPath)
+  })
+
+  ipcMain.handle('git:push', (_event: IpcMainInvokeEvent, repoPath: string) => {
+    return gitService.push(repoPath)
+  })
 
   ipcMain.handle(
     'git:log',

@@ -11,8 +11,12 @@ interface GitState {
   refreshBranches: (repoPath: string) => Promise<void>
   refreshLog: (repoPath: string) => Promise<void>
   stageFiles: (repoPath: string, files: string[]) => Promise<void>
+  unstageFiles: (repoPath: string, files: string[]) => Promise<void>
+  discardFiles: (repoPath: string, files: string[]) => Promise<void>
   commit: (repoPath: string, message: string) => Promise<void>
   checkout: (repoPath: string, branch: string) => Promise<void>
+  pull: (repoPath: string) => Promise<void>
+  push: (repoPath: string) => Promise<void>
   getDiff: (repoPath: string, filePath?: string) => Promise<void>
 }
 
@@ -64,6 +68,22 @@ export const useGitStore = create<GitState>((set) => ({
     }
   },
 
+  unstageFiles: async (repoPath: string, files: string[]) => {
+    try {
+      await window.api.gitUnstage(repoPath, files)
+    } catch (error) {
+      console.error('Failed to unstage files:', error)
+    }
+  },
+
+  discardFiles: async (repoPath: string, files: string[]) => {
+    try {
+      await window.api.gitDiscard(repoPath, files)
+    } catch (error) {
+      console.error('Failed to discard files:', error)
+    }
+  },
+
   commit: async (repoPath: string, message: string) => {
     try {
       await window.api.gitCommit(repoPath, message)
@@ -77,6 +97,22 @@ export const useGitStore = create<GitState>((set) => ({
       await window.api.gitCheckout(repoPath, branch)
     } catch (error) {
       console.error('Failed to checkout branch:', error)
+    }
+  },
+
+  pull: async (repoPath: string) => {
+    try {
+      await window.api.gitPull(repoPath)
+    } catch (error) {
+      console.error('Failed to pull:', error)
+    }
+  },
+
+  push: async (repoPath: string) => {
+    try {
+      await window.api.gitPush(repoPath)
+    } catch (error) {
+      console.error('Failed to push:', error)
     }
   },
 

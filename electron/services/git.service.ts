@@ -97,6 +97,37 @@ export default class GitService {
     }
   }
 
+  async unstage(repoPath: string, files: string[]): Promise<void> {
+    try {
+      const git = this.getGit(repoPath)
+      await git.raw(['restore', '--staged', '--', ...files])
+    } catch (error) {
+      throw new Error(`Failed to unstage files: ${(error as Error).message}`)
+    }
+  }
+
+  async discard(repoPath: string, files: string[]): Promise<void> {
+    try {
+      const git = this.getGit(repoPath)
+      const status = await git.status()
+      const targetFiles = new Set(files)
+      const untracked = status.files
+        .filter((file) => targetFiles.has(file.path) && file.index === '?' && file.working_dir === '?')
+        .map((file) => file.path)
+      const tracked = files.filter((file) => !untracked.includes(file))
+
+      if (tracked.length > 0) {
+        await git.raw(['restore', '--worktree', '--', ...tracked])
+      }
+
+      if (untracked.length > 0) {
+        await git.raw(['clean', '-f', '--', ...untracked])
+      }
+    } catch (error) {
+      throw new Error(`Failed to discard files: ${(error as Error).message}`)
+    }
+  }
+
   async commit(repoPath: string, message: string): Promise<string> {
     try {
       const git = this.getGit(repoPath)
@@ -129,6 +160,24 @@ export default class GitService {
       await git.checkout(branch)
     } catch (error) {
       throw new Error(`Failed to checkout branch "${branch}": ${(error as Error).message}`)
+    }
+  }
+
+  async pull(repoPath: string): Promise<void> {
+    try {
+      const git = this.getGit(repoPath)
+      await git.pull()
+    } catch (error) {
+      throw new Error(`Failed to pull: ${(error as Error).message}`)
+    }
+  }
+
+  async push(repoPath: string): Promise<void> {
+    try {
+      const git = this.getGit(repoPath)
+      await git.push()
+    } catch (error) {
+      throw new Error(`Failed to push: ${(error as Error).message}`)
     }
   }
 

@@ -7,6 +7,18 @@ interface GitDiffEditorProps {
   filePath?: string | null
 }
 
+function joinPath(base: string, relative: string): string {
+  const sep = base.includes('\\') ? '\\' : '/'
+  return `${base.replace(/[\\/]+$/, '')}${sep}${relative.replace(/^[\\/]+/, '')}`
+}
+
+function toDiffModelPath(scope: string, filePath: string): string {
+  const encodedPath = Array.from(new TextEncoder().encode(`${scope}:${filePath}`))
+    .map((byte) => byte.toString(16).padStart(2, '0'))
+    .join('')
+  return `git-diff://agent-ide/${encodedPath}`
+}
+
 export default function GitDiffEditor({ repoPath, filePath }: GitDiffEditorProps) {
   const [original, setOriginal] = useState('')
   const [modified, setModified] = useState('')
@@ -24,9 +36,10 @@ export default function GitDiffEditor({ repoPath, filePath }: GitDiffEditorProps
 
       setLoading(true)
       try {
+        const currentFilePath = joinPath(repoPath, filePath)
         const [head, current] = await Promise.all([
           window.api.gitFileAtHead(repoPath, filePath).catch(() => ''),
-          window.api.readFile(filePath).catch(() => ''),
+          window.api.readFile(currentFilePath).catch(() => ''),
         ])
         if (!cancelled) {
           setOriginal(head)
@@ -66,8 +79,8 @@ export default function GitDiffEditor({ repoPath, filePath }: GitDiffEditorProps
         original={original}
         modified={modified}
         language={getLanguageFromFileName(filePath.split(/[/\\]/).pop() || filePath)}
-        originalModelPath={`git-head:///${encodeURIComponent(filePath)}`}
-        modifiedModelPath={`file:///${encodeURIComponent(filePath)}`}
+        originalModelPath={toDiffModelPath('head', filePath)}
+        modifiedModelPath={toDiffModelPath('worktree', filePath)}
         keepCurrentOriginalModel
         keepCurrentModifiedModel
         theme="vs-dark"

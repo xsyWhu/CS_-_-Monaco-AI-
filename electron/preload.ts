@@ -30,9 +30,13 @@ export interface ElectronAPI {
   gitDiff(repoPath: string, filePath?: string): Promise<string>
   gitFileAtHead(repoPath: string, filePath: string): Promise<string>
   gitAdd(repoPath: string, files: string[]): Promise<void>
+  gitUnstage(repoPath: string, files: string[]): Promise<void>
+  gitDiscard(repoPath: string, files: string[]): Promise<void>
   gitCommit(repoPath: string, message: string): Promise<string>
   gitBranches(repoPath: string): Promise<unknown[]>
   gitCheckout(repoPath: string, branch: string): Promise<void>
+  gitPull(repoPath: string): Promise<void>
+  gitPush(repoPath: string): Promise<void>
   gitLog(repoPath: string, maxCount?: number): Promise<unknown[]>
 
   // Search
@@ -94,9 +98,13 @@ const api: ElectronAPI = {
   gitDiff: (repoPath, filePath?) => ipcRenderer.invoke('git:diff', repoPath, filePath),
   gitFileAtHead: (repoPath, filePath) => ipcRenderer.invoke('git:fileAtHead', repoPath, filePath),
   gitAdd: (repoPath, files) => ipcRenderer.invoke('git:add', repoPath, files),
+  gitUnstage: (repoPath, files) => ipcRenderer.invoke('git:unstage', repoPath, files),
+  gitDiscard: (repoPath, files) => ipcRenderer.invoke('git:discard', repoPath, files),
   gitCommit: (repoPath, message) => ipcRenderer.invoke('git:commit', repoPath, message),
   gitBranches: (repoPath) => ipcRenderer.invoke('git:branches', repoPath),
   gitCheckout: (repoPath, branch) => ipcRenderer.invoke('git:checkout', repoPath, branch),
+  gitPull: (repoPath) => ipcRenderer.invoke('git:pull', repoPath),
+  gitPush: (repoPath) => ipcRenderer.invoke('git:push', repoPath),
   gitLog: (repoPath, maxCount?) => ipcRenderer.invoke('git:log', repoPath, maxCount),
 
   // Search

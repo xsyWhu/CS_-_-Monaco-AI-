@@ -95,9 +95,13 @@ export interface ElectronAPI {
   gitDiff(repoPath: string, filePath?: string): Promise<string>
   gitFileAtHead(repoPath: string, filePath: string): Promise<string>
   gitAdd(repoPath: string, files: string[]): Promise<void>
+  gitUnstage(repoPath: string, files: string[]): Promise<void>
+  gitDiscard(repoPath: string, files: string[]): Promise<void>
   gitCommit(repoPath: string, message: string): Promise<void>
   gitBranches(repoPath: string): Promise<GitBranch[]>
   gitCheckout(repoPath: string, branch: string): Promise<void>
+  gitPull(repoPath: string): Promise<void>
+  gitPush(repoPath: string): Promise<void>
   gitLog(repoPath: string, maxCount?: number): Promise<GitLogEntry[]>
 
   // Search
