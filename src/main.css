@@ -1,6 +1,8 @@
 @import "tailwindcss";
 
 :root {
+  color-scheme: dark;
+  --app-font-size: 15px;
   --bg-primary: #1e1e2e;
   --bg-secondary: #181825;
   --bg-tertiary: #313244;
@@ -16,6 +18,23 @@
   --error: #f38ba8;
 }
 
+:root[data-theme='light'] {
+  color-scheme: light;
+  --bg-primary: #f6f8fc;
+  --bg-secondary: #e7edf6;
+  --bg-tertiary: #d8e1ef;
+  --bg-hover: #c7d4e6;
+  --text-primary: #1f2937;
+  --text-secondary: #425466;
+  --text-muted: #6b7280;
+  --accent: #2563eb;
+  --accent-hover: #1d4ed8;
+  --border: #c8d3e2;
+  --success: #15803d;
+  --warning: #a16207;
+  --error: #b42318;
+}
+
 * {
   margin: 0;
   padding: 0;
@@ -28,7 +47,7 @@ html, body, #root {
   font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif;
   background: var(--bg-primary);
   color: var(--text-primary);
-  font-size: 13px;
+  font-size: var(--app-font-size);
 }
 
 /* custom scrollbar */

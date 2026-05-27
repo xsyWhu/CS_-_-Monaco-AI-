@@ -5,6 +5,7 @@ import type { CursorPosition, EditorProblem } from '@/types/editor.types'
 import { documentModelManager } from '@/services/editor/document-model-manager'
 import { collectDiagnostics, subscribeToDiagnosticsChange } from '@/services/editor/diagnostics-manager'
 import { languageFeatureManager, type LanguageFeatureActions } from '@/services/editor/language-feature-manager'
+import { useSettingsStore } from '@/stores/settings.store'
 
 interface MonacoWrapperProps {
   filePath: string
@@ -50,6 +51,8 @@ export default function MonacoWrapper({
   const editorRef = useRef<Monaco.editor.IStandaloneCodeEditor | null>(null)
   const markerListenerRef = useRef<Monaco.IDisposable | null>(null)
   const featureDisposablesRef = useRef<Monaco.IDisposable[]>([])
+  const themeMode = useSettingsStore((s) => s.themeMode)
+  const uiFontSize = useSettingsStore((s) => s.uiFontSize)
   const modelUri = useMemo(() => documentModelManager.getModelUri(filePath), [filePath])
 
   const revealPositionInEditor = () => {
@@ -122,7 +125,7 @@ export default function MonacoWrapper({
   return (
     <Editor
       path={modelUri}
-      theme="vs-dark"
+      theme={themeMode === 'light' ? 'vs-light' : 'vs-dark'}
       language={language}
       value={content}
       beforeMount={(monaco) => {
@@ -136,7 +139,7 @@ export default function MonacoWrapper({
       keepCurrentModel
       options={{
         minimap: { enabled: window.innerWidth > 1024 },
-        fontSize: 14,
+        fontSize: uiFontSize,
         lineNumbers: 'on',
         wordWrap: 'on',
         automaticLayout: true,

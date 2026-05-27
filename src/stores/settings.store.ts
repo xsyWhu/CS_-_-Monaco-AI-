@@ -3,11 +3,17 @@ import type { ProviderSettings } from '@/types/agent.types'
 
 export type SidebarPanel = 'files' | 'outline' | 'search' | 'problems' | 'git'
 export type AutoSaveMode = 'off' | 'afterDelay' | 'onFocusChange'
+export type ThemeMode = 'dark' | 'light'
 
 interface EditorPreferences {
   autoSaveMode: AutoSaveMode
   autoSaveDelay: number
   formatOnSave: boolean
+}
+
+interface AppearancePreferences {
+  themeMode: ThemeMode
+  uiFontSize: number
 }
 
 interface SettingsState {
@@ -16,6 +22,8 @@ interface SettingsState {
   autoSaveMode: AutoSaveMode
   autoSaveDelay: number
   formatOnSave: boolean
+  themeMode: ThemeMode
+  uiFontSize: number
   sidebarVisible: boolean
   chatVisible: boolean
   terminalVisible: boolean
@@ -25,6 +33,9 @@ interface SettingsState {
   setAutoSaveMode: (mode: AutoSaveMode) => void
   setAutoSaveDelay: (delay: number) => void
   setFormatOnSave: (enabled: boolean) => void
+  setThemeMode: (mode: ThemeMode) => void
+  toggleThemeMode: () => void
+  setUIFontSize: (size: number) => void
   setWorkspacePath: (path: string) => void
   toggleSidebar: () => void
   toggleChatPanel: () => void
@@ -34,6 +45,11 @@ interface SettingsState {
 }
 
 const EDITOR_PREFS_KEY = 'agent-ide.editor.preferences.v1'
+const APPEARANCE_PREFS_KEY = 'agent-ide.appearance.v1'
+
+function clampFontSize(size: number): number {
+  return Math.max(13, Math.min(20, Math.floor(size)))
+}
 
 function loadEditorPreferences(): EditorPreferences {
   try {
@@ -61,10 +77,44 @@ function saveEditorPreferences(prefs: EditorPreferences): void {
   }
 }
 
+function loadAppearancePreferences(): AppearancePreferences {
+  try {
+    const raw = localStorage.getItem(APPEARANCE_PREFS_KEY)
+    if (!raw) return { themeMode: 'dark', uiFontSize: 15 }
+    const parsed = JSON.parse(raw) as Partial<AppearancePreferences>
+    return {
+      themeMode: parsed.themeMode === 'light' ? 'light' : 'dark',
+      uiFontSize: clampFontSize(typeof parsed.uiFontSize === 'number' ? parsed.uiFontSize : 15),
+    }
+  } catch {
+    return { themeMode: 'dark', uiFontSize: 15 }
+  }
+}
+
+function saveAppearancePreferences(prefs: AppearancePreferences): void {
+  try {
+    localStorage.setItem(APPEARANCE_PREFS_KEY, JSON.stringify(prefs))
+  } catch {
+    // Ignore localStorage errors
+  }
+}
+
+function applyAppearance(themeMode: ThemeMode, uiFontSize: number): void {
+  if (typeof document === 'undefined') return
+
+  const root = document.documentElement
+  root.dataset.theme = themeMode
+  root.style.setProperty('--app-font-size', `${uiFontSize}px`)
+}
+
+const initialAppearance = loadAppearancePreferences()
+applyAppearance(initialAppearance.themeMode, initialAppearance.uiFontSize)
+
 export const useSettingsStore = create<SettingsState>((set) => ({
   provider: null,
   workspacePath: '',
   ...loadEditorPreferences(),
+  ...initialAppearance,
   sidebarVisible: true,
   chatVisible: true,
   terminalVisible: false,
@@ -121,6 +171,35 @@ export const useSettingsStore = create<SettingsState>((set) => ({
       }
       saveEditorPreferences(next)
       return { formatOnSave: enabled }
+    })
+  },
+
+  setThemeMode: (mode: ThemeMode) => {
+    set((state) => {
+      const next = { themeMode: mode, uiFontSize: state.uiFontSize }
+      saveAppearancePreferences(next)
+      applyAppearance(next.themeMode, next.uiFontSize)
+      return { themeMode: mode }
+    })
+  },
+
+  toggleThemeMode: () => {
+    set((state) => {
+      const mode = state.themeMode === 'dark' ? 'light' : 'dark'
+      const next = { themeMode: mode, uiFontSize: state.uiFontSize }
+      saveAppearancePreferences(next)
+      applyAppearance(next.themeMode, next.uiFontSize)
+      return { themeMode: mode }
+    })
+  },
+
+  setUIFontSize: (size: number) => {
+    const uiFontSize = clampFontSize(size)
+    set((state) => {
+      const next = { themeMode: state.themeMode, uiFontSize }
+      saveAppearancePreferences(next)
+      applyAppearance(next.themeMode, next.uiFontSize)
+      return { uiFontSize }
     })
   },
 

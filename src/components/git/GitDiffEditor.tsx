@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { DiffEditor } from '@monaco-editor/react'
 import { getLanguageFromFileName } from '@/lib/utils'
+import { useSettingsStore } from '@/stores/settings.store'
 
 interface GitDiffEditorProps {
   repoPath: string
@@ -23,6 +24,8 @@ export default function GitDiffEditor({ repoPath, filePath }: GitDiffEditorProps
   const [original, setOriginal] = useState('')
   const [modified, setModified] = useState('')
   const [loading, setLoading] = useState(false)
+  const themeMode = useSettingsStore((s) => s.themeMode)
+  const uiFontSize = useSettingsStore((s) => s.uiFontSize)
 
   useEffect(() => {
     let cancelled = false
@@ -83,13 +86,13 @@ export default function GitDiffEditor({ repoPath, filePath }: GitDiffEditorProps
         modifiedModelPath={toDiffModelPath('worktree', filePath)}
         keepCurrentOriginalModel
         keepCurrentModifiedModel
-        theme="vs-dark"
+        theme={themeMode === 'light' ? 'vs-light' : 'vs-dark'}
         options={{
           readOnly: true,
           renderSideBySide: true,
           automaticLayout: true,
           minimap: { enabled: false },
-          fontSize: 13,
+          fontSize: uiFontSize,
           scrollBeyondLastLine: false,
         }}
       />
