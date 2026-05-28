@@ -12,6 +12,7 @@
     "skipLibCheck": true,
     "strict": true,
     "target": "ESNext",
+    "ignoreDeprecations": "6.0",
     "baseUrl": "./src",
     "paths": {
       "@/*": ["./*"]
