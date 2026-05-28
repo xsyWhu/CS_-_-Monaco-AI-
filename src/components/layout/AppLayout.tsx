@@ -131,7 +131,7 @@ export default function AppLayout() {
             className="px-2 py-1 rounded hover:bg-[var(--bg-hover)] hover:text-[var(--text-primary)] transition-colors"
             title="Toggle Terminal"
           >
-            <TerminalSquare size={14} />
+            <TerminalSquare className="titlebar-icon text-[var(--text-muted)]" />
           </button>
           <span className="opacity-50">⎯</span>
           <span className="opacity-50">☐</span>

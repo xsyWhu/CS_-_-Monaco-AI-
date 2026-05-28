@@ -135,8 +135,8 @@ export default function SearchPanel() {
 
                     return (
                       <div key={group.filePath} className="border-b border-[var(--border)]/30">
-                        <div className="px-3 pt-2 pb-1 text-[11px] uppercase tracking-wide text-[var(--text-muted)] flex items-center justify-between">
-                          <span className="truncate">{fileName}</span>
+                        <div className="px-3 pt-2 pb-1 flex items-center justify-between">
+                          <div className="sidebar-group-title sidebar-truncate">{fileName}</div>
                           <span>{group.items.length} matches</span>
                         </div>
                         <div className="px-3 pb-2">
@@ -169,7 +169,7 @@ export default function SearchPanel() {
           </>
         ) : query.trim() ? (
           <div className="flex items-center justify-center py-8 text-sm text-[var(--text-muted)]">
-            No results found
+            No results found.
           </div>
         ) : (
           <div className="flex flex-col items-center justify-center py-8 text-[var(--text-muted)]">

@@ -215,7 +215,7 @@ export default function FileExplorer() {
             className="p-1 rounded hover:bg-[var(--bg-hover)] text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors"
             title="Open File"
           >
-            <File size={14} />
+            <File className="action-icon" />
           </button>
           <button
             onClick={() => {
@@ -224,7 +224,7 @@ export default function FileExplorer() {
             className="p-1 rounded hover:bg-[var(--bg-hover)] text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors"
             title="Open Folder"
           >
-            <FolderOpen size={14} />
+            <FolderOpen className="action-icon" />
           </button>
 
           {rootPath && (
@@ -239,7 +239,7 @@ export default function FileExplorer() {
                 }`}
                 title="New File"
               >
-                <FilePlus size={14} />
+                <FilePlus className="action-icon" />
               </button>
               <button
                 onClick={handleNewFolder}
@@ -251,21 +251,21 @@ export default function FileExplorer() {
                 }`}
                 title="New Folder"
               >
-                <FolderPlus size={14} />
+                <FolderPlus className="action-icon" />
               </button>
               <button
                 onClick={() => refreshTree()}
                 className="p-1 rounded hover:bg-[var(--bg-hover)] text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors"
                 title="Refresh Explorer"
               >
-                <RefreshCw size={14} />
+                <RefreshCw className="action-icon" />
               </button>
               <button
                 onClick={collapseAll}
                 className="p-1 rounded hover:bg-[var(--bg-hover)] text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors"
                 title="Collapse All"
               >
-                <ChevronsDownUp size={14} />
+                <ChevronsDownUp className="action-icon" />
               </button>
             </>
           )}
@@ -275,7 +275,7 @@ export default function FileExplorer() {
       <div className="flex-1 overflow-y-auto overflow-x-hidden">
         {!rootPath ? (
           <div className="flex flex-col items-center justify-center h-full gap-3 px-4">
-            <p className="text-[var(--text-muted)] text-xs text-center">No folder opened yet.</p>
+            <p className="text-[var(--text-muted)] text-xs text-center">No folder opened. Open a folder to get started.</p>
             <button
               onClick={() => {
                 void handleOpenFolder()
@@ -291,13 +291,13 @@ export default function FileExplorer() {
               <div className="px-3">
                 {recentWorkspaces.length > 0 && (
                   <div className="mb-3">
-                    <div className="mb-1 flex items-center justify-between gap-2 text-[10px] font-semibold uppercase tracking-wider text-[var(--text-muted)]">
+                    <div className="mb-1 flex items-center justify-between gap-2 sidebar-group-title">
                       <button
                         onClick={toggleRecentWorkspaces}
                         className="flex min-w-0 items-center gap-1 hover:text-[var(--text-primary)] transition-colors"
                         title={recentWorkspacesCollapsed ? 'Expand recent workspaces' : 'Collapse recent workspaces'}
                       >
-                        {recentWorkspacesCollapsed ? <ChevronRight size={12} /> : <ChevronDown size={12} />}
+                        {recentWorkspacesCollapsed ? <ChevronRight className="inline-icon-sm" /> : <ChevronDown className="inline-icon-sm" />}
                         <span>Recent Workspaces</span>
                       </button>
                       <button
@@ -305,7 +305,7 @@ export default function FileExplorer() {
                         className="p-1 rounded hover:bg-[var(--bg-hover)] text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors"
                         title="Clear Recent Workspaces"
                       >
-                        <Trash2 size={12} />
+                        <Trash2 className="inline-icon-sm" />
                       </button>
                     </div>
                     {!recentWorkspacesCollapsed && (
@@ -313,23 +313,24 @@ export default function FileExplorer() {
                         {recentWorkspaces.map((workspace) => (
                           <div
                             key={workspace}
-                            className="group flex items-center gap-1 rounded hover:bg-[var(--bg-hover)]"
+                            className="group rounded"
                           >
                             <button
                               onClick={() => {
                                 void handleOpenRecentWorkspace(workspace)
                               }}
-                              className="min-w-0 flex-1 px-2 py-1.5 text-left text-xs text-[var(--text-primary)] truncate"
+                              className="sidebar-item"
                               title={workspace}
                             >
-                              {workspace}
-                            </button>
-                            <button
-                              onClick={() => removeRecentWorkspace(workspace)}
-                              className="shrink-0 p-1 mr-1 rounded text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-primary)] opacity-0 group-hover:opacity-100 transition-all"
-                              title="Remove from recent workspaces"
-                            >
-                              <X size={12} />
+                              <span className="sidebar-truncate" style={{ marginLeft: 4 }}>{workspace}</span>
+                              <button
+                                onClick={(e) => { e.stopPropagation(); removeRecentWorkspace(workspace) }}
+                                className="ml-2 p-1 rounded text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-primary)] opacity-0 group-hover:opacity-100 transition-all"
+                                title="Remove from recent workspaces"
+                                aria-label="remove-recent-workspace"
+                              >
+                                <X className="sidebar-icon" />
+                              </button>
                             </button>
                           </div>
                         ))}
@@ -340,13 +341,13 @@ export default function FileExplorer() {
 
                 {recentFiles.length > 0 && (
                   <div>
-                    <div className="mb-1 flex items-center justify-between gap-2 text-[10px] font-semibold uppercase tracking-wider text-[var(--text-muted)]">
+                    <div className="mb-1 flex items-center justify-between gap-2 sidebar-group-title">
                       <button
                         onClick={toggleRecentFiles}
                         className="flex min-w-0 items-center gap-1 hover:text-[var(--text-primary)] transition-colors"
                         title={recentFilesCollapsed ? 'Expand recent files' : 'Collapse recent files'}
                       >
-                        {recentFilesCollapsed ? <ChevronRight size={12} /> : <ChevronDown size={12} />}
+                        {recentFilesCollapsed ? <ChevronRight className="inline-icon-sm" /> : <ChevronDown className="inline-icon-sm" />}
                         <span>Recent Files</span>
                       </button>
                       <button
@@ -354,7 +355,7 @@ export default function FileExplorer() {
                         className="p-1 rounded hover:bg-[var(--bg-hover)] text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors"
                         title="Clear Recent Files"
                       >
-                        <Trash2 size={12} />
+                        <Trash2 className="inline-icon-sm" />
                       </button>
                     </div>
                     {!recentFilesCollapsed && (
@@ -362,23 +363,24 @@ export default function FileExplorer() {
                         {recentFiles.slice(0, 8).map((filePath) => (
                           <div
                             key={filePath}
-                            className="group flex items-center gap-1 rounded hover:bg-[var(--bg-hover)]"
+                            className="group rounded"
                           >
                             <button
                               onClick={() => {
                                 void handleOpenRecentFile(filePath)
                               }}
-                              className="min-w-0 flex-1 px-2 py-1.5 text-left text-xs text-[var(--text-primary)] truncate"
+                              className="sidebar-item"
                               title={filePath}
                             >
-                              {filePath}
-                            </button>
-                            <button
-                              onClick={() => removeRecentFile(filePath)}
-                              className="shrink-0 p-1 mr-1 rounded text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-primary)] opacity-0 group-hover:opacity-100 transition-all"
-                              title="Remove from recent files"
-                            >
-                              <X size={12} />
+                              <span className="sidebar-truncate" style={{ marginLeft: 4 }}>{filePath}</span>
+                              <button
+                                onClick={(e) => { e.stopPropagation(); removeRecentFile(filePath) }}
+                                className="ml-2 p-1 rounded text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-primary)] opacity-0 group-hover:opacity-100 transition-all"
+                                title="Remove from recent files"
+                                aria-label="remove-recent-file"
+                              >
+                                <X className="sidebar-icon" />
+                              </button>
                             </button>
                           </div>
                         ))}

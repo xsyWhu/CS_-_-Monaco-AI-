@@ -91,10 +91,10 @@ export default function FileTreeItem({ entry, depth }: { entry: FileTreeNode; de
     <>
       <div
         className={cn(
-          'flex items-center gap-1 py-[2px] cursor-pointer select-none group hover:bg-[var(--bg-hover)] relative z-10',
+          'sidebar-item group relative z-10',
           isSelected && 'bg-[var(--bg-tertiary)]'
         )}
-        style={{ paddingLeft: depth * 16 + 8 }}
+        style={{ paddingLeft: depth * 16 + 8, height: 'var(--sidebar-item-height)' }}
         draggable={!entry.isDirectory}
         onDragStart={(e) => {
           if (entry.isDirectory) return
@@ -117,8 +117,8 @@ export default function FileTreeItem({ entry, depth }: { entry: FileTreeNode; de
           setContextMenu({ x: e.clientX, y: e.clientY }) 
         }}
       >
-        {entry.isDirectory ? <ChevronRight size={14} className={cn('text-[var(--text-muted)] transition-transform', isExpanded && 'rotate-90')} /> : <span className="w-3.5" />}
-        {entry.isLoading ? <Loader2 size={14} className="animate-spin text-[var(--text-muted)]" /> : <FileIcon size={14} className={entry.isDirectory ? 'text-[var(--accent)]' : 'text-[var(--text-muted)]'} />}
+        {entry.isDirectory ? <ChevronRight className={cn('sidebar-icon text-[var(--text-muted)] transition-transform', isExpanded && 'rotate-90')} /> : <span className="w-3.5" />}
+        {entry.isLoading ? <Loader2 className="sidebar-icon animate-spin text-[var(--text-muted)]" /> : <FileIcon className={entry.isDirectory ? 'sidebar-icon text-[var(--accent)]' : 'sidebar-icon text-[var(--text-muted)]'} />}
 
         {isEditing ? (
           <input
@@ -136,7 +136,7 @@ export default function FileTreeItem({ entry, depth }: { entry: FileTreeNode; de
             onClick={handleInputEvents}
           />
         ) : (
-          <span className="truncate text-[13px] text-[var(--text-primary)]">{entry.name}</span>
+          <span className="sidebar-truncate text-[13px] text-[var(--text-primary)]">{entry.name}</span>
         )}
       </div>
 

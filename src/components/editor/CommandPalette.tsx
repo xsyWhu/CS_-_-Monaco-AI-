@@ -162,7 +162,7 @@ export default function CommandPalette({ isOpen, mode, onClose }: CommandPalette
           <div className="max-h-[420px] overflow-y-auto">
             {mergedResults.length === 0 ? (
               <div className="px-4 py-6 text-sm text-[var(--text-muted)]">
-                {rootPath ? 'No matching files' : 'Open a folder first'}
+                {rootPath ? 'No matching files' : 'Open a folder to search files.'}
               </div>
             ) : (
               mergedResults.map((item, index) => (

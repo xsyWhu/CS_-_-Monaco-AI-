@@ -24,7 +24,7 @@ export default function TerminalPanel() {
             className="p-1 rounded hover:bg-[var(--bg-hover)] text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors"
             title="New Terminal"
           >
-            <Plus size={14} />
+            <Plus className="action-icon" />
           </button>
           {activeTerminalId && (
             <button
@@ -32,7 +32,7 @@ export default function TerminalPanel() {
               className="p-1 rounded hover:bg-[var(--bg-hover)] text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors"
               title="Close Terminal"
             >
-              <X size={14} />
+              <X className="action-icon" />
             </button>
           )}
         </div>

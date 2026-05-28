@@ -42,7 +42,7 @@ function ActivityBarButton({
       {isActive && (
         <span className="absolute left-0 top-1/2 -translate-y-1/2 w-[2px] h-5 bg-[var(--accent)] rounded-r" />
       )}
-      <Icon size={20} strokeWidth={1.5} />
+      <Icon className="sidebar-icon" strokeWidth={1.5} />
     </button>
   )
 }

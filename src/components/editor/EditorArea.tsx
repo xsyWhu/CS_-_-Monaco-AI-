@@ -100,14 +100,22 @@ export default function EditorArea() {
         <h2 className="text-xl font-light mb-2 text-[var(--text-secondary)]">
           Agent IDE
         </h2>
-        <p className="text-sm">Open a folder to get started</p>
+        <p className="text-sm">Open a folder to get started.</p>
       </div>
     )
   }
 
+  // Only render split view when split is enabled AND both panes actually have tabs.
+  // This prevents showing an empty right pane (with "Drop a file here...") when
+  // the user hasn't opened files in the right pane, keeping the default UX single-pane.
+  const leftHas = (paneTabs.left ?? []).length > 0
+  const rightHas = (paneTabs.right ?? []).length > 0
+
+  const shouldShowSplit = splitEnabled && rightHas
+
   return (
     <div className="h-full flex flex-col bg-[var(--bg-primary)] overflow-hidden">
-      {splitEnabled ? (
+      {shouldShowSplit ? (
         <PanelGroup direction="horizontal" autoSaveId="editor-split-layout">
           <Panel id="left-pane" order={1} minSize={20}>
             <EditorPaneView pane="left" />

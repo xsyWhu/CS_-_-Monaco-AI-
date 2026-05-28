@@ -249,8 +249,8 @@ export default function GitPanel() {
 
       <div className="flex-1 overflow-y-auto">
         <section>
-          <div className="flex items-center justify-between px-3 py-1.5 text-[10px] font-semibold text-[var(--text-secondary)] uppercase tracking-wider bg-[var(--bg-secondary)] sticky top-0 z-10">
-            <span>Staged Changes ({stagedFiles.length})</span>
+          <div className="flex items-center justify-between px-3 py-1.5 bg-[var(--bg-secondary)] sticky top-0 z-10">
+            <div className="sidebar-group-title">Staged Changes ({stagedFiles.length})</div>
             {stagedFiles.length > 0 && (
               <button
                 onClick={() => void handleUnstage(stagedFiles.map((f) => f.path))}
@@ -268,11 +268,12 @@ export default function GitPanel() {
             stagedFiles.map((f) => (
               <div
                 key={`staged-${f.path}`}
-                className="flex items-center gap-2 px-3 py-1 hover:bg-[var(--bg-hover)] group text-xs transition-colors"
+                className="sidebar-item group text-xs"
+                style={{ padding: '0 12px' }}
               >
                 <StatusBadge status={f.index} />
                 <span
-                  className="flex-1 truncate text-[var(--text-primary)] cursor-pointer hover:underline"
+                  className="flex-1 sidebar-truncate text-[var(--text-primary)] cursor-pointer hover:underline"
                   onClick={() => handleViewDiff(f.path)}
                   title={f.path}
                 >
@@ -305,8 +306,8 @@ export default function GitPanel() {
         </section>
 
         <section>
-          <div className="flex items-center justify-between px-3 py-1.5 text-[10px] font-semibold text-[var(--text-secondary)] uppercase tracking-wider bg-[var(--bg-secondary)] sticky top-0 z-10">
-            <span>Changes ({changedFiles.length})</span>
+          <div className="flex items-center justify-between px-3 py-1.5 bg-[var(--bg-secondary)] sticky top-0 z-10">
+            <div className="sidebar-group-title">Changes ({changedFiles.length})</div>
             {changedFiles.length > 0 && (
               <div className="flex items-center gap-2">
                 <button
@@ -334,11 +335,12 @@ export default function GitPanel() {
             changedFiles.map((f) => (
               <div
                 key={`changed-${f.path}`}
-                className="flex items-center gap-2 px-3 py-1 hover:bg-[var(--bg-hover)] group text-xs transition-colors"
+                className="sidebar-item group text-xs"
+                style={{ padding: '0 12px' }}
               >
                 <StatusBadge status={f.index === '?' ? '?' : f.working_dir} />
                 <span
-                  className="flex-1 truncate text-[var(--text-primary)] cursor-pointer hover:underline"
+                  className="flex-1 sidebar-truncate text-[var(--text-primary)] cursor-pointer hover:underline"
                   onClick={() => handleViewDiff(f.path)}
                   title={f.path}
                 >
