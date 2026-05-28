@@ -10,6 +10,7 @@ import TerminalPanel from '@/components/terminal/TerminalPanel'
 import ChatPanel from '@/components/chat/ChatPanel'
 import CommandPalette from '@/components/editor/CommandPalette'
 import { EditorShortcuts, isTypingTarget, matchesShortcut } from '@/services/editor/command-registry'
+import { runCurrentCppFile } from '@/services/editor/editor-service'
 
 function ResizeHandle({ direction = 'horizontal' }: { direction?: 'horizontal' | 'vertical' }) {
   const isHorizontal = direction === 'horizontal'
@@ -71,6 +72,14 @@ export default function AppLayout() {
         return
       }
 
+      if (matchesShortcut(event, EditorShortcuts.runCppFile)) {
+        event.preventDefault()
+        void runCurrentCppFile().catch((error) => {
+          console.error('Failed to run current C++ file:', error)
+        })
+        return
+      }
+
       if (matchesShortcut(event, EditorShortcuts.toggleTheme)) {
         event.preventDefault()
         toggleThemeMode()
@@ -111,6 +120,7 @@ export default function AppLayout() {
     toggleTerminal,
     toggleThemeMode,
     setUIFontSize,
+    runCurrentCppFile,
   ])
 
   return (

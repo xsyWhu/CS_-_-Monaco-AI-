@@ -10,7 +10,7 @@ interface TerminalState {
   terminals: TerminalInfo[]
   activeTerminalId: string | null
 
-  createTerminal: () => Promise<void>
+  createTerminal: (options?: { cwd?: string; shell?: string }) => Promise<string>
   closeTerminal: (id: string) => Promise<void>
   setActiveTerminal: (id: string) => void
 }
@@ -19,15 +19,16 @@ export const useTerminalStore = create<TerminalState>((set, get) => ({
   terminals: [],
   activeTerminalId: null,
 
-  createTerminal: async () => {
-    const cwd = useFileTreeStore.getState().rootPath ?? undefined
-    const result = await window.api.createTerminal({ cwd })
+  createTerminal: async (options) => {
+    const cwd = options?.cwd ?? useFileTreeStore.getState().rootPath ?? undefined
+    const result = await window.api.createTerminal({ cwd, shell: options?.shell })
     const { terminals } = get()
     const terminal: TerminalInfo = {
       id: result.id,
       title: `Terminal ${terminals.length + 1}`,
     }
     set({ terminals: [...terminals, terminal], activeTerminalId: result.id })
+    return result.id
   },
 
   closeTerminal: async (id) => {

@@ -3,7 +3,7 @@ import { useFileTreeStore } from '@/stores/file-tree.store'
 import { useEditorStore } from '@/stores/editor.store'
 import { useGitStore } from '@/stores/git.store'
 import { useSettingsStore } from '@/stores/settings.store'
-import { saveAllTabs, toggleSplitView } from '@/services/editor/editor-service'
+import { isCppFilePath, runCurrentCppFile, saveAllTabs, toggleSplitView } from '@/services/editor/editor-service'
 
 export default function StatusBar() {
   const rootPath = useFileTreeStore((s) => s.rootPath)
@@ -82,6 +82,19 @@ export default function StatusBar() {
         >
           {splitEnabled ? 'Single Pane' : 'Split View'}
         </button>
+        {activeTab && isCppFilePath(activeTab.filePath) && (
+          <button
+            onClick={() => {
+              void runCurrentCppFile().catch((error) => {
+                console.error('Failed to run current C++ file:', error)
+              })
+            }}
+            className="px-1.5 py-0.5 rounded hover:bg-[var(--bg-hover)] text-[var(--accent)] transition-colors"
+            title="Run current C++ file (Ctrl+Alt+R)"
+          >
+            Run C++ File
+          </button>
+        )}
       </div>
 
       <div className="flex items-center gap-3">
