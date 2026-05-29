@@ -63,6 +63,15 @@ export default function AppLayout() {
         return
       }
 
+      if (matchesShortcut(event, EditorShortcuts.toggleDebugPanel)) {
+        event.preventDefault()
+        if (!sidebarVisible) {
+          toggleSidebar()
+        }
+        setSidebarPanel('debug')
+        return
+      }
+
       if (matchesShortcut(event, EditorShortcuts.toggleTerminal)) {
         event.preventDefault()
         if (!terminalVisible && terminalCount === 0) {

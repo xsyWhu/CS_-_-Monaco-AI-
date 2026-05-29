@@ -25,6 +25,17 @@ export interface ElectronAPI {
   resizeTerminal(id: string, cols: number, rows: number): Promise<void>
   closeTerminal(id: string): Promise<void>
 
+  // Debug
+  startDebug(sourceFile: string, breakpoints: { filePath: string; line: number }[]): Promise<unknown>
+  stopDebug(): Promise<void>
+  continueDebug(): Promise<void>
+  stepOverDebug(): Promise<void>
+  stepIntoDebug(): Promise<void>
+  stepOutDebug(): Promise<void>
+  pauseDebug(): Promise<void>
+  toggleDebugBreakpoint(filePath: string, line: number): Promise<unknown>
+  setDebugBreakpoints(breakpoints: { filePath: string; line: number }[]): Promise<unknown>
+
   // Git
   gitStatus(repoPath: string): Promise<unknown>
   gitDiff(repoPath: string, filePath?: string): Promise<string>
@@ -93,6 +104,18 @@ const api: ElectronAPI = {
   resizeTerminal: (id, cols, rows) => ipcRenderer.invoke('terminal:resize', id, cols, rows),
   closeTerminal: (id) => ipcRenderer.invoke('terminal:close', id),
 
+  // Debug
+  startDebug: (sourceFile, breakpoints) => ipcRenderer.invoke('debug:start', sourceFile, breakpoints),
+  stopDebug: () => ipcRenderer.invoke('debug:stop'),
+  continueDebug: () => ipcRenderer.invoke('debug:continue'),
+  stepOverDebug: () => ipcRenderer.invoke('debug:stepOver'),
+  stepIntoDebug: () => ipcRenderer.invoke('debug:stepInto'),
+  stepOutDebug: () => ipcRenderer.invoke('debug:stepOut'),
+  pauseDebug: () => ipcRenderer.invoke('debug:pause'),
+  toggleDebugBreakpoint: (filePath, line) =>
+    ipcRenderer.invoke('debug:toggleBreakpoint', filePath, line),
+  setDebugBreakpoints: (breakpoints) => ipcRenderer.invoke('debug:setBreakpoints', breakpoints),
+
   // Git
   gitStatus: (repoPath) => ipcRenderer.invoke('git:status', repoPath),
   gitDiff: (repoPath, filePath?) => ipcRenderer.invoke('git:diff', repoPath, filePath),
@@ -141,6 +164,36 @@ const api: ElectronAPI = {
     ipcRenderer.on('terminal:data', handler)
     return () => {
       ipcRenderer.removeListener('terminal:data', handler)
+    }
+  },
+
+  onDebugState: (callback) => {
+    const handler = (_event: IpcRendererEvent, state: unknown): void => {
+      callback(state as never)
+    }
+    ipcRenderer.on('debug:state', handler)
+    return () => {
+      ipcRenderer.removeListener('debug:state', handler)
+    }
+  },
+
+  onDebugOutput: (callback) => {
+    const handler = (_event: IpcRendererEvent, lines: unknown): void => {
+      callback(lines as never)
+    }
+    ipcRenderer.on('debug:output', handler)
+    return () => {
+      ipcRenderer.removeListener('debug:output', handler)
+    }
+  },
+
+  onDebugLocation: (callback) => {
+    const handler = (_event: IpcRendererEvent, location: unknown): void => {
+      callback(location as never)
+    }
+    ipcRenderer.on('debug:location', handler)
+    return () => {
+      ipcRenderer.removeListener('debug:location', handler)
     }
   },
 

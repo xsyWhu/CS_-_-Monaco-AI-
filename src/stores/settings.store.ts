@@ -1,7 +1,7 @@
 import { create } from 'zustand'
 import type { ProviderSettings } from '@/types/agent.types'
 
-export type SidebarPanel = 'files' | 'outline' | 'search' | 'problems' | 'git'
+export type SidebarPanel = 'files' | 'outline' | 'search' | 'problems' | 'git' | 'debug'
 export type AutoSaveMode = 'off' | 'afterDelay' | 'onFocusChange'
 export type ThemeMode = 'dark' | 'light'
 

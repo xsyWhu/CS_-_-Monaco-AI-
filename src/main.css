@@ -147,3 +147,17 @@ html, body, #root {
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+
+/* Debugger visuals inside Monaco */
+.monaco-editor .debug-breakpoint-glyph {
+  background: radial-gradient(circle at center, #ef4444 0 35%, transparent 36% 100%);
+}
+
+.monaco-editor .debug-current-line {
+  background: color-mix(in srgb, var(--accent) 16%, transparent);
+}
+
+.monaco-editor .debug-current-line-decoration {
+  background: linear-gradient(180deg, transparent 0%, var(--accent) 35%, var(--accent) 65%, transparent 100%);
+  width: 3px !important;
+}

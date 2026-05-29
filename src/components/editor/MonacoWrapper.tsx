@@ -6,6 +6,7 @@ import { documentModelManager } from '@/services/editor/document-model-manager'
 import { collectDiagnostics, subscribeToDiagnosticsChange } from '@/services/editor/diagnostics-manager'
 import { languageFeatureManager, type LanguageFeatureActions } from '@/services/editor/language-feature-manager'
 import { useSettingsStore } from '@/stores/settings.store'
+import { getDebugBreakpointsForFile, useDebugStore } from '@/stores/debug.store'
 
 interface MonacoWrapperProps {
   filePath: string
@@ -49,10 +50,15 @@ export default function MonacoWrapper({
   onProblemsChange,
 }: MonacoWrapperProps) {
   const editorRef = useRef<Monaco.editor.IStandaloneCodeEditor | null>(null)
+  const monacoRef = useRef<typeof Monaco | null>(null)
   const markerListenerRef = useRef<Monaco.IDisposable | null>(null)
   const featureDisposablesRef = useRef<Monaco.IDisposable[]>([])
+  const breakpointDecorationsRef = useRef<string[]>([])
+  const executionDecorationsRef = useRef<string[]>([])
   const themeMode = useSettingsStore((s) => s.themeMode)
   const uiFontSize = useSettingsStore((s) => s.uiFontSize)
+  const debugSession = useDebugStore((s) => s.session)
+  const toggleBreakpoint = useDebugStore((s) => s.toggleBreakpoint)
   const modelUri = useMemo(() => documentModelManager.getModelUri(filePath), [filePath])
 
   const revealPositionInEditor = () => {
@@ -78,6 +84,7 @@ export default function MonacoWrapper({
 
   const handleMount: OnMount = (editor, monaco) => {
     editorRef.current = editor
+    monacoRef.current = monaco
     documentModelManager.attach(monaco)
     documentModelManager.register(filePath)
 
@@ -90,6 +97,21 @@ export default function MonacoWrapper({
       onCursorChange,
       onBlur,
     })
+
+    const breakpointDisposable = editor.onMouseDown((event) => {
+      const targetType = event.target.type
+      const mouseTargetTypes = monaco.editor.MouseTargetType
+      const isGutterClick =
+        targetType === mouseTargetTypes.GUTTER_GLYPH_MARGIN ||
+        targetType === mouseTargetTypes.GUTTER_LINE_NUMBERS
+      if (!isGutterClick) return
+      const lineNumber = event.target.position?.lineNumber
+      if (!lineNumber) return
+      void toggleBreakpoint(filePath, lineNumber).catch((error) => {
+        console.error('Failed to toggle breakpoint:', error)
+      })
+    })
+    featureDisposablesRef.current.push(breakpointDisposable)
 
     markerListenerRef.current?.dispose()
     markerListenerRef.current = subscribeToDiagnosticsChange(monaco, (problems) => {
@@ -114,11 +136,57 @@ export default function MonacoWrapper({
   }, [filePath, language, onProblemsChange])
 
   useEffect(() => {
+    const editor = editorRef.current
+    const monaco = monacoRef.current
+    if (!editor) return
+    if (!monaco) return
+
+    const breakpoints = getDebugBreakpointsForFile(filePath)
+    const breakpointDecorations = breakpoints
+      .map((line) => ({
+        range: new monaco.Range(line, 1, line, 1),
+        options: {
+          isWholeLine: false,
+          glyphMarginClassName: 'debug-breakpoint-glyph',
+          overviewRuler: { color: '#ef4444', position: monaco.editor.OverviewRulerLane.Left },
+        },
+      }))
+
+    breakpointDecorationsRef.current = editor.deltaDecorations(
+      breakpointDecorationsRef.current,
+      breakpointDecorations,
+    )
+
+    const stopped = debugSession.currentLocation
+    const isStoppedHere =
+      stopped &&
+      stopped.filePath.replace(/\\/g, '/').toLowerCase() === filePath.replace(/\\/g, '/').toLowerCase()
+
+    executionDecorationsRef.current = editor.deltaDecorations(
+      executionDecorationsRef.current,
+        isStoppedHere
+        ? [
+            {
+              range: new monaco.Range(stopped.line, 1, stopped.line, 1),
+              options: {
+                isWholeLine: true,
+                className: 'debug-current-line',
+                linesDecorationsClassName: 'debug-current-line-decoration',
+              },
+            },
+          ]
+        : [],
+    )
+  }, [debugSession.currentLocation, debugSession.breakpoints, filePath, language])
+
+  useEffect(() => {
     return () => {
       markerListenerRef.current?.dispose()
       markerListenerRef.current = null
       featureDisposablesRef.current.forEach((disposable) => disposable.dispose())
       featureDisposablesRef.current = []
+      breakpointDecorationsRef.current = []
+      executionDecorationsRef.current = []
     }
   }, [])
 

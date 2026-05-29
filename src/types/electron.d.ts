@@ -65,6 +65,42 @@ export interface GitLogEntry {
   email: string
 }
 
+export interface DebugBreakpoint {
+  filePath: string
+  line: number
+}
+
+export interface DebugStackFrame {
+  level: number
+  func: string
+  file?: string
+  fullname?: string
+  line?: number
+}
+
+export interface DebugVariable {
+  name: string
+  value: string
+}
+
+export interface DebugLocation {
+  filePath: string
+  line: number
+  column: number
+}
+
+export interface DebugSessionState {
+  status: 'idle' | 'starting' | 'running' | 'stopped' | 'ended' | 'error'
+  sourceFile: string | null
+  executablePath: string | null
+  currentLocation: DebugLocation | null
+  breakpoints: DebugBreakpoint[]
+  stackFrames: DebugStackFrame[]
+  variables: DebugVariable[]
+  output: string[]
+  error: string | null
+}
+
 export interface ElectronAPI {
   // Window / Dialog
   showConfirm(message: string): Promise<boolean>
@@ -89,6 +125,17 @@ export interface ElectronAPI {
   writeTerminal(id: string, data: string): Promise<void>
   resizeTerminal(id: string, cols: number, rows: number): Promise<void>
   closeTerminal(id: string): Promise<void>
+
+  // Debug
+  startDebug(sourceFile: string, breakpoints: DebugBreakpoint[]): Promise<DebugSessionState>
+  stopDebug(): Promise<void>
+  continueDebug(): Promise<void>
+  stepOverDebug(): Promise<void>
+  stepIntoDebug(): Promise<void>
+  stepOutDebug(): Promise<void>
+  pauseDebug(): Promise<void>
+  toggleDebugBreakpoint(filePath: string, line: number): Promise<DebugSessionState>
+  setDebugBreakpoints(breakpoints: DebugBreakpoint[]): Promise<DebugSessionState>
 
   // Git
   gitStatus(repoPath: string): Promise<GitStatus>
@@ -125,6 +172,9 @@ export interface ElectronAPI {
   // Event listeners (return unsubscribe function)
   onFileChanged(callback: (eventType: string, filePath: string) => void): () => void
   onTerminalData(callback: (data: { id: string; data: string }) => void): () => void
+  onDebugState(callback: (state: DebugSessionState) => void): () => void
+  onDebugOutput(callback: (lines: string[]) => void): () => void
+  onDebugLocation(callback: (location: DebugLocation) => void): () => void
   onAgentStream(callback: (data: { conversationId: string; token: string }) => void): () => void
   onAgentTextReplace(callback: (data: { conversationId: string; text: string }) => void): () => void
   onAgentToolCall(callback: (data: { conversationId: string; toolCall: any }) => void): () => void

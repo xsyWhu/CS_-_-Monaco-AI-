@@ -3,6 +3,7 @@ import AppLayout from './components/layout/AppLayout'
 import { useSettingsStore } from '@/stores/settings.store'
 import { getSavedWorkspacePath, useFileTreeStore } from '@/stores/file-tree.store'
 import { useEditorStore } from '@/stores/editor.store'
+import { initializeDebugBridge } from '@/stores/debug.store'
 
 class ErrorBoundary extends Component<
   { children: ReactNode },
@@ -42,6 +43,10 @@ export default function App() {
   useEffect(() => {
     loadSettings()
   }, [loadSettings])
+
+  useEffect(() => {
+    initializeDebugBridge()
+  }, [])
 
   useEffect(() => {
     if (rootPath) return
