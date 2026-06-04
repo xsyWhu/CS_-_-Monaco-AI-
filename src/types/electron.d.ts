@@ -119,6 +119,7 @@ export interface ElectronAPI {
   unwatchDirectory(dirPath: string): Promise<void>
   selectDirectory(): Promise<string | null>
   selectFile(): Promise<string | null>
+  getTempDir(): Promise<string>
 
   // Terminal
   createTerminal(options?: { cwd?: string; shell?: string }): Promise<{ id: string }>

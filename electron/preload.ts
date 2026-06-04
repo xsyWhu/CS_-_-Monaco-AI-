@@ -18,6 +18,7 @@ export interface ElectronAPI {
   unwatchDirectory(dirPath: string): Promise<void>
   selectDirectory(): Promise<string | null>
   selectFile(): Promise<string | null>
+  getTempDir(): Promise<string>
 
   // Terminal
   createTerminal(options?: { cwd?: string; shell?: string }): Promise<{ id: string }>
@@ -97,6 +98,7 @@ const api: ElectronAPI = {
   unwatchDirectory: (dirPath) => ipcRenderer.invoke('fs:unwatchDirectory', dirPath),
   selectDirectory: () => ipcRenderer.invoke('fs:selectDirectory'),
   selectFile: () => ipcRenderer.invoke('fs:selectFile'),
+  getTempDir: () => ipcRenderer.invoke('fs:getTempDir'),
 
   // Terminal
   createTerminal: (options?) => ipcRenderer.invoke('terminal:create', options),

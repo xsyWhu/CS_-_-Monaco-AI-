@@ -1,4 +1,4 @@
-import { ipcMain, dialog, IpcMainInvokeEvent } from 'electron'
+import { app, ipcMain, dialog, IpcMainInvokeEvent } from 'electron'
 import FileSystemService from '../services/file-system.service'
 
 const fileSystemService = new FileSystemService()
@@ -60,6 +60,10 @@ export function registerFileSystemIPC(): void {
     }
 
     return result.filePaths[0]
+  })
+
+  ipcMain.handle('fs:getTempDir', () => {
+    return app.getPath('temp')
   })
 
   ipcMain.handle('fs:watchDirectory', (event: IpcMainInvokeEvent, dirPath: string) => {
