@@ -169,6 +169,31 @@ function stripResponsePayload(line: string): string {
   return cleaned
 }
 
+function formatToolStartError(tool: 'g++' | 'gdb', error: Error): string {
+  const errorWithCode = error as NodeJS.ErrnoException
+  if (errorWithCode.code === 'ENOENT') {
+    if (tool === 'gdb' && process.platform === 'win32') {
+      return [
+        'Failed to start gdb: gdb was not found in PATH.',
+        'Install it in MSYS2 UCRT64 with: pacman -S --needed mingw-w64-ucrt-x86_64-gdb',
+        'Then restart this app so the embedded terminal and Electron main process can reload PATH.',
+      ].join(' ')
+    }
+
+    if (tool === 'g++' && process.platform === 'win32') {
+      return [
+        'Failed to start g++: g++ was not found in PATH.',
+        'Install it in MSYS2 UCRT64 with: pacman -S --needed mingw-w64-ucrt-x86_64-gcc',
+        'Then restart this app so the embedded terminal and Electron main process can reload PATH.',
+      ].join(' ')
+    }
+
+    return `Failed to start ${tool}: ${tool} was not found in PATH.`
+  }
+
+  return `Failed to start ${tool}: ${error.message}`
+}
+
 class DebugService {
   private sender: WebContents | null = null
   private session: InternalSession | null = null
@@ -248,6 +273,12 @@ class DebugService {
       stdio: 'pipe',
     })
 
+    let didSpawn = false
+    let resolveStartup: ((error: Error | null) => void) | null = null
+    const startupPromise = new Promise<Error | null>((resolve) => {
+      resolveStartup = resolve
+    })
+
     this.session = {
       gdb,
       sourceFile,
@@ -261,6 +292,34 @@ class DebugService {
       this.readyResolver = resolve
     })
 
+    gdb.once('spawn', () => {
+      didSpawn = true
+      resolveStartup?.(null)
+      resolveStartup = null
+    })
+    gdb.on('error', (error) => {
+      const message = formatToolStartError('gdb', error)
+      this.pending.forEach((pending) => {
+        pending.reject(error)
+      })
+      this.pending.clear()
+      this.session = null
+      this.readyResolver?.()
+      this.readyResolver = null
+      this.readyPromise = null
+      this.sessionState = {
+        ...this.sessionState,
+        status: 'error',
+        error: message,
+      }
+      this.pushOutput(message)
+      this.emitState()
+
+      if (!didSpawn) {
+        resolveStartup?.(error)
+        resolveStartup = null
+      }
+    })
     gdb.stdout.on('data', (chunk: Buffer) => {
       this.handleStdout(chunk.toString('utf8'))
     })
@@ -283,12 +342,29 @@ class DebugService {
       }
     })
 
-    await this.waitForReady()
-    await this.sendCommand('-gdb-set pagination off')
-    await this.sendCommand('-gdb-set target-async on')
-    await this.sendCommand('-enable-pretty-printing')
-    await this.syncBreakpoints()
-    await this.sendCommand('-exec-run')
+    const startupError = await startupPromise
+    if (startupError) {
+      return this.getState()
+    }
+
+    try {
+      await this.waitForReady()
+      await this.sendCommand('-gdb-set pagination off')
+      await this.sendCommand('-gdb-set mi-async on')
+      await this.sendCommand('-enable-pretty-printing')
+      await this.syncBreakpoints()
+      await this.sendCommand('-exec-run')
+    } catch (error) {
+      const message = `Debugger start failed: ${(error as Error).message}`
+      this.sessionState = {
+        ...this.sessionState,
+        status: 'error',
+        error: message,
+      }
+      this.pushOutput(message)
+      this.emitState()
+      return this.getState()
+    }
 
     this.sessionState = {
       ...this.sessionState,
@@ -416,7 +492,7 @@ class DebugService {
         output += chunk.toString('utf8')
       })
       proc.on('error', (error) => {
-        resolve({ ok: false, error: `Failed to start g++: ${error.message}`, output })
+        resolve({ ok: false, error: formatToolStartError('g++', error), output })
       })
       proc.on('exit', (code) => {
         if (code === 0) {
@@ -463,7 +539,8 @@ class DebugService {
       // Ignore if there are no existing breakpoints.
     }
     for (const breakpoint of breakpoints) {
-      await this.sendCommand(`-break-insert ${escapeForMi(`${normalizePath(breakpoint.filePath)}:${breakpoint.line}`)}`)
+      const location = `${normalizePath(breakpoint.filePath)}:${breakpoint.line}`
+      await this.sendCommand(`-break-insert "${escapeForMi(location)}"`)
     }
   }
 

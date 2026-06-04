@@ -1,4 +1,3 @@
-import path from 'node:path'
 import { useEditorStore } from '@/stores/editor.store'
 import { useSettingsStore } from '@/stores/settings.store'
 import { useTerminalStore } from '@/stores/terminal.store'
@@ -28,11 +27,6 @@ function getBaseNameWithoutExtension(filePath: string): string {
   const baseName = getBaseName(filePath)
   const dotIndex = baseName.lastIndexOf('.')
   return dotIndex === -1 ? baseName : baseName.slice(0, dotIndex)
-}
-
-function sanitizeExecutableName(name: string): string {
-  const sanitized = name.replace(/[^a-zA-Z0-9._-]+/g, '_').replace(/^_+|_+$/g, '')
-  return sanitized || 'program'
 }
 
 async function ensureTerminalForRun(cwd: string): Promise<string> {
@@ -89,19 +83,14 @@ export async function runCurrentCppFile(): Promise<void> {
 
   const cwd = getDirectory(activeTab.filePath)
   const terminalId = await ensureTerminalForRun(cwd)
-  const inputFile = escapePowerShellSingleQuoted(activeTab.filePath)
-  const tempDir = await window.api.getTempDir()
-  const buildDir = path.join(tempDir, 'my-agent-ide-build')
-  const outputFilePath = path.join(
-    buildDir,
-    `${sanitizeExecutableName(getBaseNameWithoutExtension(activeTab.filePath))}.exe`,
-  )
-  const outputFile = escapePowerShellSingleQuoted(outputFilePath)
+  const inputFile = escapePowerShellSingleQuoted(getBaseName(activeTab.filePath))
+  const outputFileName = `${getBaseNameWithoutExtension(activeTab.filePath)}.exe`
+  const outputFile = escapePowerShellSingleQuoted(outputFileName)
+  const executableCommand = escapePowerShellSingleQuoted(`.\\${outputFileName}`)
   const command = [
-    `New-Item -ItemType Directory -Force -Path '${escapePowerShellSingleQuoted(buildDir)}' | Out-Null`,
     `Set-Location -LiteralPath '${escapePowerShellSingleQuoted(cwd)}'`,
-    `g++ -std=c++17 -O2 -Wall -Wextra -o '${outputFile}' '${inputFile}'`,
-    `if ($LASTEXITCODE -eq 0) { & '${outputFile}' }`,
+    `g++ '${inputFile}' -std=c++17 -O2 -Wall -Wextra -o '${outputFile}'`,
+    `if ($LASTEXITCODE -eq 0) { & '${executableCommand}' }`,
   ].join('; ')
 
   await window.api.writeTerminal(terminalId, `${command}\r`)
